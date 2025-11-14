@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class TokenPermission
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next, $permission): Response
+    {
+        $user = $request->user();
+
+        // 🔒 Check if user or token is missing
+        if (!$user || !$user->currentAccessToken()) {
+            $notify[] = "Unauthorized request";
+            return apiResponse("unauthenticated", "error", $notify);
+        }
+
+        // 🔒 Check if token has required ability
+        if (!in_array($permission, $user->currentAccessToken()->abilities)) {
+            $notify[] = "Unauthorized request";
+            return apiResponse("unauthorized_request", "error", $notify);
+        }
+
+        return $next($request);
+    }
+    }
+}

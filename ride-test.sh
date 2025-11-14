@@ -1,0 +1,50 @@
+#!/bin/bash
+
+if [ "$#" -ne 8 ]; then
+  echo "Usage: $0 <pickup_location> <pickup_latitude> <pickup_longitude> <destination_location> <destination_latitude> <destination_longitude> <offer_amount> <payment_type>"
+  exit 1
+fi
+
+PICKUP_LOCATION="$1"
+PICKUP_LAT="$2"
+PICKUP_LNG="$3"
+DEST_LOCATION="$4"
+DEST_LAT="$5"
+DEST_LNG="$6"
+OFFER="$7"
+PAYMENT="$8"
+
+TOKEN=$(php artisan tinker --execute="echo App\\Models\\User::first()->createToken('auth_token',['auth_token'])->plainTextToken;")
+
+if [ -z "$TOKEN" ]; then
+  echo "❌ Failed to generate token. Check database connection or users table."
+  exit 1
+fi
+
+API_URL="http://localhost/core/api/ride/create"
+
+# Build JSON safely
+JSON_PAYLOAD=$(cat <<EOF
+{
+  "service_id": 1,
+  "pickup_latitude": "$PICKUP_LAT",
+  "pickup_longitude": "$PICKUP_LNG",
+  "pickup_location": "$PICKUP_LOCATION",
+  "destination_latitude": "$DEST_LAT",
+  "destination_longitude": "$DEST_LNG",
+  "destination_location": "$DEST_LOCATION",
+  "number_of_passenger": 1,
+  "offer_amount": $OFFER,
+  "payment_type": $PAYMENT
+}
+EOF
+)
+
+echo "🚗 Sending ride creation request to $API_URL..."
+curl -s -X POST "$API_URL" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "dev-token: ovoride-dev-123" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "$JSON_PAYLOAD"
+
