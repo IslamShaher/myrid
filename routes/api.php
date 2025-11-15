@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
+use App\Http\Controllers\Api\ShuttleController;
 | API Routes
 |--------------------------------------------------------------------------
 |
@@ -236,4 +237,10 @@ Route::namespace('Api\Driver')->prefix('driver')->group(function () {
         });
         Route::get('logout', 'Auth\LoginController@logout');
     });
+});
+
+Route::prefix('shuttle')->group(function () {
+    Route::get('stops', [ShuttleController::class, 'stops']);
+    Route::get('routes', [ShuttleController::class, 'routes']);
+    Route::post('match-route', [ShuttleController::class, 'matchRoute']);
 });
