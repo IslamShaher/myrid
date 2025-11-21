@@ -11,15 +11,13 @@ class ShuttleRoute extends Model
 
     protected $table = 'routes';
 
-    protected $fillable = [
-        'name',
-    ];
+    protected $fillable = ['name', 'code'];
 
     public function stops()
     {
-        return $this->belongsToMany(Stop::class, 'route_stops')
-            ->withPivot('order')
-            ->orderBy('route_stops.order');
+        return $this->belongsToMany(Stop::class, 'route_stops', 'route_id', 'stop_id')
+                    ->withPivot('order')
+                    ->orderBy('pivot_order');
     }
 }
- 
+
