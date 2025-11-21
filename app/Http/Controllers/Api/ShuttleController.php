@@ -3,14 +3,31 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use App\Models\ShuttleRoute;
 use App\Models\Stop;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ShuttleController extends Controller
 {
     /**
-     * Match a user trip (start/end lat/lng) to shuttle routes.
+     * Fetch all shuttle routes with their stops in correct order
+     */
+    public function index()
+    {
+        $routes = ShuttleRoute::with(['stops' => function ($query) {
+            $query->orderBy('pivot_order');
+        }])->get();
+
+        return response()->json([
+            'success' => true,
+            'routes' => $routes
+        ]);
+    }
+
+    /**
+     * Match nearest stops for start and end coordinates,
+     * and find which shuttle routes contain BOTH stops.
      */
     public function matchRoute(Request $request)
     {
@@ -21,97 +38,58 @@ class ShuttleController extends Controller
             'end_lng'   => 'required|numeric',
         ]);
 
-        $startLat = $request->input('start_lat');
-        $startLng = $request->input('start_lng');
-        $endLat   = $request->input('end_lat');
-        $endLng   = $request->input('end_lng');
+        $startLat = $request->start_lat;
+        $startLng = $request->start_lng;
+        $endLat   = $request->end_lat;
+        $endLng   = $request->end_lng;
 
-        // Haversine formula in SQL (distance in km)
-        $nearestStart = Stop::select('*')
-            ->selectRaw(
-                "(
-                    6371 * acos(
-                        cos(radians(?)) * cos(radians(latitude)) *
-                        cos(radians(longitude) - radians(?)) +
-                        sin(radians(?)) * sin(radians(latitude))
-                    )
-                ) AS distance",
-                [$startLat, $startLng, $startLat]
-            )
-            ->orderBy('distance')
-            ->first();
+        // 🔍 Find nearest start stop
+        $startStop = Stop::selectRaw("
+            stops.*,
+            ST_Distance_Sphere(
+                point(longitude, latitude),
+                point(?, ?)
+            ) AS distance
+        ", [$startLng, $startLat])
+        ->orderBy('distance')
+        ->first();
 
-        $nearestEnd = Stop::select('*')
-            ->selectRaw(
-                "(
-                    6371 * acos(
-                        cos(radians(?)) * cos(radians(latitude)) *
-                        cos(radians(longitude) - radians(?)) +
-                        sin(radians(?)) * sin(radians(latitude))
-                    )
-                ) AS distance",
-                [$endLat, $endLng, $endLat]
-            )
-            ->orderBy('distance')
-            ->first();
+        // 🔍 Find nearest end stop
+        $endStop = Stop::selectRaw("
+            stops.*,
+            ST_Distance_Sphere(
+                point(longitude, latitude),
+                point(?, ?)
+            ) AS distance
+        ", [$endLng, $endLat])
+        ->orderBy('distance')
+        ->first();
 
-        if (!$nearestStart || !$nearestEnd) {
+        if (!$startStop || !$endStop) {
             return response()->json([
-                'remark'  => 'no_stops',
-                'status'  => 'error',
-                'message' => ['No shuttle stops found'],
+                'success' => false,
+                'message' => 'No matching stops found.',
             ], 404);
         }
 
-        // Routes that contain both nearestStart and nearestEnd
-        $routes = ShuttleRoute::whereHas('stops', function ($q) use ($nearestStart) {
-                $q->where('stops.id', $nearestStart->id);
+        // 🔍 Find all routes that contain BOTH stops
+        $routes = ShuttleRoute::whereHas('stops', function ($q) use ($startStop) {
+                $q->where('stops.id', $startStop->id);
             })
-            ->whereHas('stops', function ($q) use ($nearestEnd) {
-                $q->where('stops.id', $nearestEnd->id);
+            ->whereHas('stops', function ($q) use ($endStop) {
+                $q->where('stops.id', $endStop->id);
             })
-            ->with(['stops'])
+            ->with(['stops' => function ($q) {
+                $q->orderBy('pivot_order');
+            }])
             ->get();
 
         return response()->json([
-            'remark'  => 'shuttle_match',
-            'status'  => 'success',
-            'message' => ['Shuttle routes fetched successfully'],
-            'data'    => [
-                'nearest_start_stop' => $nearestStart,
-                'nearest_end_stop'   => $nearestEnd,
-                'routes'             => $routes,
-            ],
-        ]);
-    }
-
-    /**
-     * List all stops.
-     */
-    public function stops()
-    {
-        $stops = Stop::all();
-
-        return response()->json([
-            'remark'  => 'stops',
-            'status'  => 'success',
-            'message' => ['Stops fetched successfully'],
-            'data'    => $stops,
-        ]);
-    }
-
-    /**
-     * List all shuttle routes with stops.
-     */
-    public function routes()
-    {
-        $routes = ShuttleRoute::with('stops')->get();
-
-        return response()->json([
-            'remark'  => 'routes',
-            'status'  => 'success',
-            'message' => ['Routes fetched successfully'],
-            'data'    => $routes,
+            'success'      => true,
+            'start_stop'   => $startStop,
+            'end_stop'     => $endStop,
+            'matched_routes' => $routes,
         ]);
     }
 }
+

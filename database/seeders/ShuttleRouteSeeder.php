@@ -43,7 +43,7 @@ class ShuttleRouteSeeder extends Seeder
             if ($stop) {
                 RouteStop::updateOrCreate(
                     [
-                        'shuttle_route_id' => $route->id,
+                        'route_id' => $route->id,
                         'order' => $i + 1
                     ],
                     [

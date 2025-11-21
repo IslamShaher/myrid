@@ -13,7 +13,12 @@ use App\Http\Controllers\Api\ShuttleController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+use App\Http\Controllers\Api\ShuttleController;
 
+Route::prefix('shuttle')->group(function () {
+    Route::get('/routes', [ShuttleController::class, 'index']);
+    Route::post('/match-route', [ShuttleController::class, 'matchRoute']);
+});
 Route::namespace("Api")->group(function () {
     Route::controller('AppController')->group(function () {
         Route::any('general-setting', 'generalSetting');
