@@ -160,11 +160,11 @@ class ShuttleController extends Controller
             return apiResponse('not_found', 'error', $notify);
         }
 
-        // 5. Calculate pricing (fixed for shuttle, based on stops)
-        $stopCount = $endStop->pivot->order - $startStop->pivot->order;
+        // 5. Calculate pricing (based on distance in km)
+        $distance = $googleMapData['distance'];
         $basePrice = 5.00;
-        $pricePerStop = 2.00;
-        $amount = $basePrice + ($stopCount * $pricePerStop);
+        $pricePerKm = 2.00;
+        $amount = $basePrice + ($distance * $pricePerKm);
 
         // 6. Create ride
         $ride = new \App\Models\Ride();
