@@ -91,5 +91,52 @@ class ShuttleController extends Controller
             'matched_routes' => $routes,
         ]);
     }
+    /**
+     * Create a new shuttle ride
+     */
+    public function create(Request $request)
+    {
+        $request->validate([
+            'route_id'      => 'required|integer',
+            'start_stop_id' => 'required|integer',
+            'end_stop_id'   => 'required|integer',
+        ]);
+
+        $route = ShuttleRoute::find($request->route_id);
+        $startStop = Stop::find($request->start_stop_id);
+        $endStop = Stop::find($request->end_stop_id);
+
+        if (!$route || !$startStop || !$endStop) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid route or stops.',
+            ], 404);
+        }
+
+        // Create Ride
+        $ride = new \App\Models\Ride();
+        $ride->uid                   = getTrx(10);
+        $ride->user_id               = auth()->id();
+        $ride->service_id            = 1; // Default service ID for now, or fetch a shuttle service
+        $ride->pickup_location       = $startStop->name;
+        $ride->pickup_latitude       = $startStop->latitude;
+        $ride->pickup_longitude      = $startStop->longitude;
+        $ride->destination           = $endStop->name;
+        $ride->destination_latitude  = $endStop->latitude;
+        $ride->destination_longitude = $endStop->longitude;
+        $ride->ride_type             = \App\Constants\Status::SHUTTLE_RIDE;
+        $ride->status                = \App\Constants\Status::RIDE_ACTIVE;
+        $ride->payment_type          = \App\Constants\Status::PAYMENT_TYPE_CASH;
+        $ride->amount                = 10.00; // Fixed price for demo
+        $ride->otp                   = getNumber(4);
+        $ride->driver_id             = 0; // No driver assigned yet
+        $ride->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shuttle ride booked successfully',
+            'ride'    => $ride,
+        ]);
+    }
 }
 

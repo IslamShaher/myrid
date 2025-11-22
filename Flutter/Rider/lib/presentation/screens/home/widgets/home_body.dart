@@ -154,8 +154,7 @@ class _HomeBodyState extends State<HomeBody> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Handle Shuttle Booking
-                    CustomSnackBar.success(successList: ["Booking Shuttle: ${shuttleController.selectedRoute?.name}"]);
+                    shuttleController.bookShuttle();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: MyColor.primaryColor,

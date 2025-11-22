@@ -248,4 +248,5 @@ Route::prefix('shuttle')->group(function () {
     Route::get('stops', [ShuttleController::class, 'stops']);
     Route::get('routes', [ShuttleController::class, 'routes']);
     Route::post('match-route', [ShuttleController::class, 'matchRoute']);
+    Route::post('create', [ShuttleController::class, 'create']);
 });

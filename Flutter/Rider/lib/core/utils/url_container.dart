@@ -76,6 +76,7 @@ class UrlContainer {
   static const String shuttleRoutes = '$shuttle/routes';
   static const String shuttleMatchRoute = '$shuttle/match-route';
   static const String shuttleStops = '$shuttle/stops';
+  static const String shuttleCreate = '$shuttle/create';
 
   // coupon
 

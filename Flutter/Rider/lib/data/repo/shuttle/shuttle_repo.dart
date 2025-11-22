@@ -29,4 +29,25 @@ class ShuttleRepo {
     );
     return responseModel;
   }
+
+  Future<ResponseModel> createRide({
+    required int routeId,
+    required int startStopId,
+    required int endStopId,
+  }) async {
+    String url = "${UrlContainer.baseUrl}${UrlContainer.shuttleCreate}";
+    Map<String, dynamic> params = {
+      "route_id": routeId,
+      "start_stop_id": startStopId,
+      "end_stop_id": endStopId,
+    };
+
+    ResponseModel responseModel = await apiClient.request(
+      url,
+      Method.postMethod,
+      params,
+      passHeader: true,
+    );
+    return responseModel;
+  }
 }

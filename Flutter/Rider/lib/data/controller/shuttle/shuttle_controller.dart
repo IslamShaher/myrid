@@ -4,6 +4,7 @@ import 'package:ovorideuser/data/model/global/response_model/response_model.dart
 import 'package:ovorideuser/data/model/shuttle/shuttle_route_model.dart';
 import 'package:ovorideuser/data/repo/shuttle/shuttle_repo.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
+import 'package:ovorideuser/presentation/screens/ride/ride_details_screen.dart';
 
 class ShuttleController extends GetxController {
   ShuttleRepo shuttleRepo;
@@ -51,6 +52,35 @@ class ShuttleController extends GetxController {
     update();
   }
   
+  Future<void> bookShuttle() async {
+    if (selectedRoute == null || shuttleRouteModel == null) return;
+
+    isLoading = true;
+    update();
+
+    try {
+      ResponseModel responseModel = await shuttleRepo.createRide(
+        routeId: selectedRoute!.id!,
+        startStopId: shuttleRouteModel!.startStop!.id!,
+        endStopId: shuttleRouteModel!.endStop!.id!,
+      );
+
+      if (responseModel.statusCode == 200) {
+        String rideId = responseModel.responseJson['ride']['id'].toString();
+        CustomSnackBar.success(successList: [MyStrings.rideCreatedSuccessfully.tr]);
+        Get.to(() => RideDetailsScreen(rideId: rideId));
+        clearData();
+      } else {
+        CustomSnackBar.error(errorList: [responseModel.message]);
+      }
+    } catch (e) {
+      CustomSnackBar.error(errorList: [MyStrings.somethingWentWrong.tr]);
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
+
   void clearData() {
     shuttleRouteModel = null;
     selectedRoute = null;

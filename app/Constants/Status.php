@@ -61,6 +61,7 @@ class Status
 
     const CITY_RIDE       = 1;
     const INTER_CITY_RIDE = 2;
+    const SHUTTLE_RIDE    = 3;
 
     const USER   = 1;
     const DRIVER = 2;

@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_71c7fce0ddba0ea5da451f673fd07ab0 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_71c7fce0ddba0ea5da451f673fd07ab0" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_71c7fce0ddba0ea5da451f673fd07ab0 = L.map(
+                "map_71c7fce0ddba0ea5da451f673fd07ab0",
+                {
+                    center: [30.075499999999998, 31.295],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 13,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_e762dee74f64c6026d1c6183bf620d54 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_e762dee74f64c6026d1c6183bf620d54.addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var marker_26b6f3a0e3eaa4e000b4ad7e40bd3ffa = L.marker(
+                [30.046, 31.23],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_ee82b4f1150a9e6eedc272a08549b47b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "user",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_26b6f3a0e3eaa4e000b4ad7e40bd3ffa.setIcon(icon_ee82b4f1150a9e6eedc272a08549b47b);
+        
+    
+        var popup_c402212b0a0190d3cd82dee4da6be591 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0e6d1e0ce0c7874c34688ab9d415a6d2 = $(`<div id="html_0e6d1e0ce0c7874c34688ab9d415a6d2" style="width: 100.0%; height: 100.0%;">User Start Location</div>`)[0];
+                popup_c402212b0a0190d3cd82dee4da6be591.setContent(html_0e6d1e0ce0c7874c34688ab9d415a6d2);
+            
+        
+
+        marker_26b6f3a0e3eaa4e000b4ad7e40bd3ffa.bindPopup(popup_c402212b0a0190d3cd82dee4da6be591)
+        ;
+
+        
+    
+    
+            var marker_30ce78a651ed4b7e7fd733b54d3cc57c = L.marker(
+                [30.105, 31.36],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_d4cb8d2b5aafebad79b652050508af5d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "flag",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_30ce78a651ed4b7e7fd733b54d3cc57c.setIcon(icon_d4cb8d2b5aafebad79b652050508af5d);
+        
+    
+        var popup_e5df9ce05e2b04678b6aa88292f4e167 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d713576dbc9c02408cdff5adba2e3b60 = $(`<div id="html_d713576dbc9c02408cdff5adba2e3b60" style="width: 100.0%; height: 100.0%;">User Destination</div>`)[0];
+                popup_e5df9ce05e2b04678b6aa88292f4e167.setContent(html_d713576dbc9c02408cdff5adba2e3b60);
+            
+        
+
+        marker_30ce78a651ed4b7e7fd733b54d3cc57c.bindPopup(popup_e5df9ce05e2b04678b6aa88292f4e167)
+        ;
+
+        
+    
+    
+            var marker_29317c0d2f49844c743719eb5991155c = L.marker(
+                [30.0388148, 31.2103418],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_0c2226cf928026309671c46cde2b3bbc = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_29317c0d2f49844c743719eb5991155c.setIcon(icon_0c2226cf928026309671c46cde2b3bbc);
+        
+    
+        var popup_87132ed7233d7b1a070d450572c5afb5 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_118c9dca50a1772659d00db5f6fd473f = $(`<div id="html_118c9dca50a1772659d00db5f6fd473f" style="width: 100.0%; height: 100.0%;">Rose Hotel (Order: 1)</div>`)[0];
+                popup_87132ed7233d7b1a070d450572c5afb5.setContent(html_118c9dca50a1772659d00db5f6fd473f);
+            
+        
+
+        marker_29317c0d2f49844c743719eb5991155c.bindPopup(popup_87132ed7233d7b1a070d450572c5afb5)
+        ;
+
+        
+    
+    
+            var marker_d873aac1065a280ac0c3f6fc21565efa = L.marker(
+                [30.0428566, 31.2119131],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_abb830bf4bdf9e3b8873c6236466fc33 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_d873aac1065a280ac0c3f6fc21565efa.setIcon(icon_abb830bf4bdf9e3b8873c6236466fc33);
+        
+    
+        var popup_552fa11650d99c2cfbdce5040ebbc7b7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_355af8e1e32f326363a3d3721b0dd36a = $(`<div id="html_355af8e1e32f326363a3d3721b0dd36a" style="width: 100.0%; height: 100.0%;">Banque Du Caire (Order: 2)</div>`)[0];
+                popup_552fa11650d99c2cfbdce5040ebbc7b7.setContent(html_355af8e1e32f326363a3d3721b0dd36a);
+            
+        
+
+        marker_d873aac1065a280ac0c3f6fc21565efa.bindPopup(popup_552fa11650d99c2cfbdce5040ebbc7b7)
+        ;
+
+        
+    
+    
+            var marker_7351c3362e97dc645273a50e97228d37 = L.marker(
+                [30.046353, 31.2216344],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_cc81165cd40958d75854b75e1e88e4d8 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_7351c3362e97dc645273a50e97228d37.setIcon(icon_cc81165cd40958d75854b75e1e88e4d8);
+        
+    
+        var popup_45582538620df5b342c9eff1ef6217d2 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c477e0603a6fb2a519e380ac905d0519 = $(`<div id="html_c477e0603a6fb2a519e380ac905d0519" style="width: 100.0%; height: 100.0%;">Anglo American Hospital (Order: 3)</div>`)[0];
+                popup_45582538620df5b342c9eff1ef6217d2.setContent(html_c477e0603a6fb2a519e380ac905d0519);
+            
+        
+
+        marker_7351c3362e97dc645273a50e97228d37.bindPopup(popup_45582538620df5b342c9eff1ef6217d2)
+        ;
+
+        
+    
+    
+            var marker_99ca6953283a4bbe88d431b729e21ffd = L.marker(
+                [30.046522, 31.2242989],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_3c5ff2caaddef1f45a4895dc1f35b40b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_99ca6953283a4bbe88d431b729e21ffd.setIcon(icon_3c5ff2caaddef1f45a4895dc1f35b40b);
+        
+    
+        var popup_b8ca7bb012f2eb48b401a74bf51b17a8 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_af1e396defe1d1aad0143aface2d52e9 = $(`<div id="html_af1e396defe1d1aad0143aface2d52e9" style="width: 100.0%; height: 100.0%;">Cairo Tower (Order: 4)</div>`)[0];
+                popup_b8ca7bb012f2eb48b401a74bf51b17a8.setContent(html_af1e396defe1d1aad0143aface2d52e9);
+            
+        
+
+        marker_99ca6953283a4bbe88d431b729e21ffd.bindPopup(popup_b8ca7bb012f2eb48b401a74bf51b17a8)
+        ;
+
+        
+    
+    
+            var marker_b8732c1cd3ee4c5a5e58c349bb5bb4bf = L.marker(
+                [30.050365, 31.2320411],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_cbad0a619321e3786c159da97e088b1a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "green",
+  "iconColor": "white",
+  "icon": "play",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_b8732c1cd3ee4c5a5e58c349bb5bb4bf.setIcon(icon_cbad0a619321e3786c159da97e088b1a);
+        
+    
+        var popup_b6d3b033e5babdc6e8c6bb1459fbacec = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_7fb4df8cc1f954b1cb37429e5b04e639 = $(`<div id="html_7fb4df8cc1f954b1cb37429e5b04e639" style="width: 100.0%; height: 100.0%;">PICKUP: Ramses Hilton</div>`)[0];
+                popup_b6d3b033e5babdc6e8c6bb1459fbacec.setContent(html_7fb4df8cc1f954b1cb37429e5b04e639);
+            
+        
+
+        marker_b8732c1cd3ee4c5a5e58c349bb5bb4bf.bindPopup(popup_b6d3b033e5babdc6e8c6bb1459fbacec)
+        ;
+
+        
+    
+    
+            var marker_091fb22d77be88ec0f3bf38ecb3cee49 = L.marker(
+                [30.0508237, 31.2518615],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_451294ebea0ef70e027a8225c9c97bfd = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_091fb22d77be88ec0f3bf38ecb3cee49.setIcon(icon_451294ebea0ef70e027a8225c9c97bfd);
+        
+    
+        var popup_1a50537a42b74a6d54b77a105017c114 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_9f25442a59b4830be3ed4406f7a1857f = $(`<div id="html_9f25442a59b4830be3ed4406f7a1857f" style="width: 100.0%; height: 100.0%;">El Tawheed El Togareya (Order: 6)</div>`)[0];
+                popup_1a50537a42b74a6d54b77a105017c114.setContent(html_9f25442a59b4830be3ed4406f7a1857f);
+            
+        
+
+        marker_091fb22d77be88ec0f3bf38ecb3cee49.bindPopup(popup_1a50537a42b74a6d54b77a105017c114)
+        ;
+
+        
+    
+    
+            var marker_779ee8fd956269fda38b3f6280a0811b = L.marker(
+                [30.0477386, 31.2622538],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_744372f7f00bbc3545d8241c6979a5c7 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_779ee8fd956269fda38b3f6280a0811b.setIcon(icon_744372f7f00bbc3545d8241c6979a5c7);
+        
+    
+        var popup_17855d75005dece93c7b6ca711887edc = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_62c80e861ff515d8ccfd44b9f8cf4e0c = $(`<div id="html_62c80e861ff515d8ccfd44b9f8cf4e0c" style="width: 100.0%; height: 100.0%;">Khan El-Khalili (Order: 7)</div>`)[0];
+                popup_17855d75005dece93c7b6ca711887edc.setContent(html_62c80e861ff515d8ccfd44b9f8cf4e0c);
+            
+        
+
+        marker_779ee8fd956269fda38b3f6280a0811b.bindPopup(popup_17855d75005dece93c7b6ca711887edc)
+        ;
+
+        
+    
+    
+            var marker_7c6245a12c009603fc5703ec707306f0 = L.marker(
+                [30.0485374, 31.2717568],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_40c839d7a7e830e085ec3c3f3b17aa06 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_7c6245a12c009603fc5703ec707306f0.setIcon(icon_40c839d7a7e830e085ec3c3f3b17aa06);
+        
+    
+        var popup_cd90d50f079e4e1bc8e79a5a9d7fa181 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e5d93387d189c1c78f97a260e6e608b3 = $(`<div id="html_e5d93387d189c1c78f97a260e6e608b3" style="width: 100.0%; height: 100.0%;">National Bank of Egypt (Order: 8)</div>`)[0];
+                popup_cd90d50f079e4e1bc8e79a5a9d7fa181.setContent(html_e5d93387d189c1c78f97a260e6e608b3);
+            
+        
+
+        marker_7c6245a12c009603fc5703ec707306f0.bindPopup(popup_cd90d50f079e4e1bc8e79a5a9d7fa181)
+        ;
+
+        
+    
+    
+            var marker_fd6a2e410703706d3a6643a4a37ed01a = L.marker(
+                [30.0711765, 31.2963999],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_80eb2865268ea0e201bd5d21351534f9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_fd6a2e410703706d3a6643a4a37ed01a.setIcon(icon_80eb2865268ea0e201bd5d21351534f9);
+        
+    
+        var popup_1bb0cc68d644c08b778cb4ebb32ac6b6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a7c5e0b57d578f0d759fab813ba832dd = $(`<div id="html_a7c5e0b57d578f0d759fab813ba832dd" style="width: 100.0%; height: 100.0%;">General Authority for Investments (Order: 9)</div>`)[0];
+                popup_1bb0cc68d644c08b778cb4ebb32ac6b6.setContent(html_a7c5e0b57d578f0d759fab813ba832dd);
+            
+        
+
+        marker_fd6a2e410703706d3a6643a4a37ed01a.bindPopup(popup_1bb0cc68d644c08b778cb4ebb32ac6b6)
+        ;
+
+        
+    
+    
+            var marker_d3e9f14716146712ba28cfa808f9330b = L.marker(
+                [30.073257, 31.30098],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_0e9b139559844eee0afac092e9ce7273 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_d3e9f14716146712ba28cfa808f9330b.setIcon(icon_0e9b139559844eee0afac092e9ce7273);
+        
+    
+        var popup_ef4c9d1af2a669a3640bb76452d88e48 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0abda4937714739811b9b57da121343d = $(`<div id="html_0abda4937714739811b9b57da121343d" style="width: 100.0%; height: 100.0%;">Fair Zone (Order: 10)</div>`)[0];
+                popup_ef4c9d1af2a669a3640bb76452d88e48.setContent(html_0abda4937714739811b9b57da121343d);
+            
+        
+
+        marker_d3e9f14716146712ba28cfa808f9330b.bindPopup(popup_ef4c9d1af2a669a3640bb76452d88e48)
+        ;
+
+        
+    
+    
+            var marker_062aa40efb2acb7b0abeacefc533d88d = L.marker(
+                [30.079829, 31.3147057],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_4022f2fbffa81329a65ebcdade17911c = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_062aa40efb2acb7b0abeacefc533d88d.setIcon(icon_4022f2fbffa81329a65ebcdade17911c);
+        
+    
+        var popup_1ad6441628d1ac9242181afb1a0e4821 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c418d99782258512950d74b2702335ae = $(`<div id="html_c418d99782258512950d74b2702335ae" style="width: 100.0%; height: 100.0%;">Image Home Department Store (Order: 11)</div>`)[0];
+                popup_1ad6441628d1ac9242181afb1a0e4821.setContent(html_c418d99782258512950d74b2702335ae);
+            
+        
+
+        marker_062aa40efb2acb7b0abeacefc533d88d.bindPopup(popup_1ad6441628d1ac9242181afb1a0e4821)
+        ;
+
+        
+    
+    
+            var marker_9522178611e9d129d02d88125f213fc4 = L.marker(
+                [30.0822406, 31.3194895],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_cedda6be9ab6c472498c1d819611563b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_9522178611e9d129d02d88125f213fc4.setIcon(icon_cedda6be9ab6c472498c1d819611563b);
+        
+    
+        var popup_f19b332c269bcc535351565a0784421a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a40f8663f5f56a17a7e54d0901483791 = $(`<div id="html_a40f8663f5f56a17a7e54d0901483791" style="width: 100.0%; height: 100.0%;">Military Factories Club (Order: 12)</div>`)[0];
+                popup_f19b332c269bcc535351565a0784421a.setContent(html_a40f8663f5f56a17a7e54d0901483791);
+            
+        
+
+        marker_9522178611e9d129d02d88125f213fc4.bindPopup(popup_f19b332c269bcc535351565a0784421a)
+        ;
+
+        
+    
+    
+            var marker_4c3a7775d0545b026efbc2da77f17ce3 = L.marker(
+                [30.0848464, 31.325749],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_db0ed5d61b10ad6c618eb93bc49b8e5b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_4c3a7775d0545b026efbc2da77f17ce3.setIcon(icon_db0ed5d61b10ad6c618eb93bc49b8e5b);
+        
+    
+        var popup_72a07a239f1a899246178bc30f258fbb = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_023df68a9b29969efbd3d75483ad4f78 = $(`<div id="html_023df68a9b29969efbd3d75483ad4f78" style="width: 100.0%; height: 100.0%;">On The Run (Orouba) (Order: 13)</div>`)[0];
+                popup_72a07a239f1a899246178bc30f258fbb.setContent(html_023df68a9b29969efbd3d75483ad4f78);
+            
+        
+
+        marker_4c3a7775d0545b026efbc2da77f17ce3.bindPopup(popup_72a07a239f1a899246178bc30f258fbb)
+        ;
+
+        
+    
+    
+            var marker_db02b0264cb73bb03cd09bbfd58e13e4 = L.marker(
+                [30.0861069, 31.331667],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_7e4cc28d7a6677fa34fbad970a8b8461 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_db02b0264cb73bb03cd09bbfd58e13e4.setIcon(icon_7e4cc28d7a6677fa34fbad970a8b8461);
+        
+    
+        var popup_8469fc796f87a15c521a772de923886f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3cf96a960fdd29d00f607e6cf986c21c = $(`<div id="html_3cf96a960fdd29d00f607e6cf986c21c" style="width: 100.0%; height: 100.0%;">Baron Hotel Cairo (Order: 14)</div>`)[0];
+                popup_8469fc796f87a15c521a772de923886f.setContent(html_3cf96a960fdd29d00f607e6cf986c21c);
+            
+        
+
+        marker_db02b0264cb73bb03cd09bbfd58e13e4.bindPopup(popup_8469fc796f87a15c521a772de923886f)
+        ;
+
+        
+    
+    
+            var marker_74e78be8d82382ccac0367eeecddfbf3 = L.marker(
+                [30.0984475, 31.3489093],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_478b61757a9a45cb2329d6f65306f269 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_74e78be8d82382ccac0367eeecddfbf3.setIcon(icon_478b61757a9a45cb2329d6f65306f269);
+        
+    
+        var popup_a30c18fe5728b99c1aa723fd13a708e4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_419df5165b24af3ffaef104ae0fc9c39 = $(`<div id="html_419df5165b24af3ffaef104ae0fc9c39" style="width: 100.0%; height: 100.0%;">Tolip El Galaa Hotel (Order: 15)</div>`)[0];
+                popup_a30c18fe5728b99c1aa723fd13a708e4.setContent(html_419df5165b24af3ffaef104ae0fc9c39);
+            
+        
+
+        marker_74e78be8d82382ccac0367eeecddfbf3.bindPopup(popup_a30c18fe5728b99c1aa723fd13a708e4)
+        ;
+
+        
+    
+    
+            var marker_7cab32accb9ad6f933df291eea323265 = L.marker(
+                [30.1003244, 31.3507396],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_1ef20e27e41e78e898d4e124a720c369 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_7cab32accb9ad6f933df291eea323265.setIcon(icon_1ef20e27e41e78e898d4e124a720c369);
+        
+    
+        var popup_ccce06005a38f1ee24eab094ce73a575 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e61ae62f4764b50a61f8996e7748980f = $(`<div id="html_e61ae62f4764b50a61f8996e7748980f" style="width: 100.0%; height: 100.0%;">Le Marche (Order: 16)</div>`)[0];
+                popup_ccce06005a38f1ee24eab094ce73a575.setContent(html_e61ae62f4764b50a61f8996e7748980f);
+            
+        
+
+        marker_7cab32accb9ad6f933df291eea323265.bindPopup(popup_ccce06005a38f1ee24eab094ce73a575)
+        ;
+
+        
+    
+    
+            var marker_f383b2fc657c968c00cd27349d73d892 = L.marker(
+                [30.1066692, 31.3649767],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_eac0c4819b8ffbced2cd2c0769d67d1f = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "stop",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_f383b2fc657c968c00cd27349d73d892.setIcon(icon_eac0c4819b8ffbced2cd2c0769d67d1f);
+        
+    
+        var popup_fa1b4798e4cbc9d0e99c4e9abe8e3934 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_81a6812536d12c3329f4880642e3554f = $(`<div id="html_81a6812536d12c3329f4880642e3554f" style="width: 100.0%; height: 100.0%;">DROPOFF: Leonardo Ristorante</div>`)[0];
+                popup_fa1b4798e4cbc9d0e99c4e9abe8e3934.setContent(html_81a6812536d12c3329f4880642e3554f);
+            
+        
+
+        marker_f383b2fc657c968c00cd27349d73d892.bindPopup(popup_fa1b4798e4cbc9d0e99c4e9abe8e3934)
+        ;
+
+        
+    
+    
+            var marker_ace37d984c724868826ead98d0a72cd2 = L.marker(
+                [30.1038995, 31.3710777],
+                {
+}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            var icon_dc1781fc2e27ca2312f1a4b7fe762cf8 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "gray",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+            marker_ace37d984c724868826ead98d0a72cd2.setIcon(icon_dc1781fc2e27ca2312f1a4b7fe762cf8);
+        
+    
+        var popup_5ef8f6c211ed1e5308517935d07b4349 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c3c55fc17e1ef2065756de0ef9749ce6 = $(`<div id="html_c3c55fc17e1ef2065756de0ef9749ce6" style="width: 100.0%; height: 100.0%;">Sheraton Apartment 41 (Order: 18)</div>`)[0];
+                popup_5ef8f6c211ed1e5308517935d07b4349.setContent(html_c3c55fc17e1ef2065756de0ef9749ce6);
+            
+        
+
+        marker_ace37d984c724868826ead98d0a72cd2.bindPopup(popup_5ef8f6c211ed1e5308517935d07b4349)
+        ;
+
+        
+    
+    
+            var poly_line_6089051542184c9776fba132a992dccd = L.polyline(
+                [[30.0388148, 31.2103418], [30.0428566, 31.2119131], [30.046353, 31.2216344], [30.046522, 31.2242989], [30.050365, 31.2320411], [30.0508237, 31.2518615], [30.0477386, 31.2622538], [30.0485374, 31.2717568], [30.0711765, 31.2963999], [30.073257, 31.30098], [30.079829, 31.3147057], [30.0822406, 31.3194895], [30.0848464, 31.325749], [30.0861069, 31.331667], [30.0984475, 31.3489093], [30.1003244, 31.3507396], [30.1066692, 31.3649767], [30.1038995, 31.3710777]],
+                {"bubblingMouseEvents": true, "color": "purple", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "purple", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.7, "smoothFactor": 1.0, "stroke": true, "weight": 5}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            poly_line_6089051542184c9776fba132a992dccd.bindTooltip(
+                `<div>
+                     Dokki → Sheraton Heliopolis
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var poly_line_552578786a9fad6886e228d0c99e6178 = L.polyline(
+                [[30.046, 31.23], [30.050365, 31.2320411]],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": "5, 10", "dashOffset": null, "fill": false, "fillColor": "green", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            poly_line_552578786a9fad6886e228d0c99e6178.bindTooltip(
+                `<div>
+                     Walk to Pickup
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var poly_line_f1d7a72b905bb7932c83ca416082a59a = L.polyline(
+                [[30.1066692, 31.3649767], [30.105, 31.36]],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": "5, 10", "dashOffset": null, "fill": false, "fillColor": "red", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_71c7fce0ddba0ea5da451f673fd07ab0);
+        
+    
+            poly_line_f1d7a72b905bb7932c83ca416082a59a.bindTooltip(
+                `<div>
+                     Walk to Destination
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>
