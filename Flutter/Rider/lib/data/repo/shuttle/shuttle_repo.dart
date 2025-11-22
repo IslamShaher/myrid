@@ -34,12 +34,14 @@ class ShuttleRepo {
     required int routeId,
     required int startStopId,
     required int endStopId,
+    required int numberOfPassenger,
   }) async {
     String url = "${UrlContainer.baseUrl}${UrlContainer.shuttleCreate}";
     Map<String, dynamic> params = {
       "route_id": routeId,
       "start_stop_id": startStopId,
       "end_stop_id": endStopId,
+      "number_of_passenger": numberOfPassenger,
     };
 
     ResponseModel responseModel = await apiClient.request(

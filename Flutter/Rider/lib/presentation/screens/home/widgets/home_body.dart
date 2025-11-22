@@ -154,7 +154,46 @@ class _HomeBodyState extends State<HomeBody> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    shuttleController.bookShuttle();
+                    // Show dialog to get passenger count
+                    TextEditingController passengerController = TextEditingController(text: '1');
+                    Get.defaultDialog(
+                      title: "Number of Passengers",
+                      titleStyle: regularLarge.copyWith(
+                        color: MyColor.getHeadingTextColor(),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      content: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: TextField(
+                          controller: passengerController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: "Enter number of passengers",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                        ),
+                      ),
+                      textConfirm: "Book Shuttle",
+                      textCancel: "Cancel",
+                      confirmTextColor: MyColor.colorWhite,
+                      cancelTextColor: MyColor.getPrimaryColor(),
+                      buttonColor: MyColor.getPrimaryColor(),
+                      onConfirm: () {
+                        int count = int.tryParse(passengerController.text) ?? 1;
+                        if (count < 1) {
+                          CustomSnackBar.error(errorList: ["Please enter at least 1 passenger"]);
+                          return;
+                        }
+                        Get.back();
+                        shuttleController.bookShuttle(count);
+                      },
+                      onCancel: () {
+                        Get.back();
+                      },
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: MyColor.primaryColor,

@@ -52,7 +52,7 @@ class ShuttleController extends GetxController {
     update();
   }
   
-  Future<void> bookShuttle() async {
+  Future<void> bookShuttle(int numberOfPassenger) async {
     if (selectedRoute == null || shuttleRouteModel == null) return;
 
     isLoading = true;
@@ -63,6 +63,7 @@ class ShuttleController extends GetxController {
         routeId: selectedRoute!.id!,
         startStopId: shuttleRouteModel!.startStop!.id!,
         endStopId: shuttleRouteModel!.endStop!.id!,
+        numberOfPassenger: numberOfPassenger,
       );
 
       if (responseModel.statusCode == 200) {
