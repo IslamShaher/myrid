@@ -127,6 +127,7 @@ class Notify
 			'email'=>Email::class,
 			'sms'=>Sms::class,
             'push'=>Push::class,
+            'whatsapp'=>Whatsapp::class,
 		];
 		if ($sendVia) {
 			return $methods[$sendVia];

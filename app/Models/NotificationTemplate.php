@@ -11,5 +11,6 @@ class NotificationTemplate extends Model
         'email_status' => 'integer',
         'sms_status'   => 'integer',
         'push_status'  => 'integer',
+        'whatsapp_status' => 'integer',
     ];
 }

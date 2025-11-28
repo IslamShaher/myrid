@@ -9,6 +9,7 @@ class GeneralSetting extends Model
     protected $casts = [
         'mail_config'             => 'object',
         'sms_config'              => 'object',
+        'whatsapp_config'         => 'object',
         'global_shortcodes'       => 'object',
         'socialite_credentials'   => 'object',
         'firebase_config'         => 'object',

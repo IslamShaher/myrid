@@ -876,9 +876,14 @@ class MyStrings {
 
   static const String yourMessage = 'Your Message';
 
-  static const String rideCanceled = 'Ride Canceled';
+  static const String sosButtonText = "SOS Button";
 
-  static const String waitForDriverResponse = 'Wait for driver response';
+  static const String waitForDriverResponse = "Wait for driver response";
+  static const String rideCanceled = "Ride Cancelled";
+  
+  // Shuttle ride strings
+  static const String noRouteFound = "No routes found";
+  static const String rideCreatedSuccessfully = "Ride created successfully";
 
   static const String ticketDetails = 'Ticket Details';
 

@@ -130,6 +130,13 @@ class NotificationController extends Controller
             $template->push_body   = $request->push_body;
             $template->push_status = $request->push_status ? Status::ENABLE : Status::DISABLE;
         }
+        if ($type == 'whatsapp') {
+            $request->validate([
+                'whatsapp_body' => 'required',
+            ]);
+            $template->whatsapp_body   = $request->whatsapp_body;
+            $template->whatsapp_status = $request->whatsapp_status ? Status::ENABLE : Status::DISABLE;
+        }
         $template->save();
 
         $notify[] = ['success', 'Notification template updated successfully'];
@@ -390,5 +397,61 @@ class NotificationController extends Controller
             return back()->withNotify($notify);
         }
         return response()->download($filePath);
+    }
+
+    public function whatsappSetting()
+    {
+        $pageTitle = 'WhatsApp Notification Settings';
+        return view('admin.notification.whatsapp_setting', compact('pageTitle'));
+    }
+
+    public function whatsappSettingUpdate(Request $request)
+    {
+        $request->validate([
+            'account_sid' => 'required',
+            'auth_token'  => 'required',
+            'from_number' => 'required',
+        ]);
+
+        $data = [
+            'account_sid' => $request->account_sid,
+            'auth_token'  => $request->auth_token,
+            'from_number' => $request->from_number,
+        ];
+
+        $general                  = gs();
+        $general->whatsapp_config = $data;
+        $general->save();
+
+        $notify[] = ['success', 'WhatsApp settings updated successfully'];
+        return back()->withNotify($notify);
+    }
+
+    public function whatsappTest(Request $request)
+    {
+        $request->validate(['mobile' => 'required']);
+        if (gs('wn')) {
+            $user = [
+                'username'     => $request->mobile,
+                'mobileNumber' => $request->mobile,
+                'fullname'     => '',
+            ];
+            notify($user, 'DEFAULT', [
+                'subject' => '',
+                'message' => 'Your whatsapp notification setting is configured successfully for ' . gs('site_name'),
+            ], ['whatsapp'], false);
+        } else {
+            $notify[] = ['info', 'Please enable from general settings'];
+            $notify[] = ['error', 'Your whatsapp notification is disabled'];
+            return back()->withNotify($notify);
+        }
+
+        if (session('whatsapp_error')) {
+            $notify[] = ['error', session('whatsapp_error')];
+        } else {
+            $notify[] = ['success', 'WhatsApp sent to ' . $request->mobile . ' successfully'];
+        }
+
+        return back()->withNotify($notify);
     }
 }

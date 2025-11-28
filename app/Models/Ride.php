@@ -12,6 +12,9 @@ class Ride extends Model
 
     protected $casts = [
         'ride_type'             => 'integer',
+        'route_id'              => 'integer',
+        'start_stop_id'         => 'integer',
+        'end_stop_id'           => 'integer',
         'user_id'               => 'integer',
         'driver_id'             => 'integer',
         'service_id'            => 'integer',

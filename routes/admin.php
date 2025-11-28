@@ -295,6 +295,11 @@ Route::middleware('admin')->group(function () {
         Route::post('sms/setting', 'smsSettingUpdate');
         Route::post('sms/test', 'smsTest')->name('sms.test');
 
+        //WhatsApp Setting
+        Route::get('whatsapp/setting', 'whatsappSetting')->name('whatsapp');
+        Route::post('whatsapp/setting', 'whatsappSettingUpdate');
+        Route::post('whatsapp/test', 'whatsappTest')->name('whatsapp.test');
+
         Route::get('notification/push/setting', 'pushSetting')->name('push');
         Route::post('notification/push/setting', 'pushSettingUpdate');
         Route::post('notification/push/setting/upload', 'pushSettingUpload')->name('push.upload');

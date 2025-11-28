@@ -11,7 +11,7 @@ class ShuttleRoute extends Model
 
     protected $table = 'routes';
 
-    protected $fillable = ['name', 'code'];
+    protected $fillable = ['name', 'code', 'capacity', 'base_price', 'price_per_km'];
 
     public function stops()
     {

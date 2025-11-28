@@ -59,6 +59,19 @@
                                                         @lang('Push')
                                                     </span>
                                                 </a>
+                                                <a href="{{ route('admin.setting.notification.template.edit', ['whatsapp', $template->id]) }}"
+                                                    class="notify-status  @if ($template->whatsapp_status != Status::ENABLE) disabled @else enable @endif">
+                                                    <span class="notify-status__icon flex-center">
+                                                        @if ($template->whatsapp_status != Status::ENABLE)
+                                                            <i class="fas fa-times"></i>
+                                                        @else
+                                                            <i class="fa-solid fa-check"></i>
+                                                        @endif
+                                                    </span>
+                                                    <span class="notify-status__link">
+                                                        @lang('WhatsApp')
+                                                    </span>
+                                                </a>
                                         </td>
                                     </tr>
                                 @empty
