@@ -1,6 +1,6 @@
 // ignore_for_file: library_prefixes
 
-import 'dart:io';
+// import 'dart:io';
 
 import 'package:dio/dio.dart' as dioX;
 import 'package:get/get.dart';
@@ -133,12 +133,13 @@ class ApiClient extends LocalStorageService {
     }
   }
 
+/*
   /// Multipart Request
   Future<ResponseModel> multipartRequest(
     String uri,
     String method,
     Map<String, dynamic>? fields, {
-    required Map<String, File> files,
+    required Map<String, dynamic> files, // Changed File to dynamic
     bool passHeader = false,
   }) async {
     try {
@@ -156,6 +157,7 @@ class ApiClient extends LocalStorageService {
       });
 
       // Add files with dynamic keys
+      /*
       files.forEach((fieldKey, file) async {
         formData.files.add(
           MapEntry(
@@ -167,6 +169,7 @@ class ApiClient extends LocalStorageService {
           ),
         );
       });
+      */
 
       dioX.Response response;
       switch (method) {
@@ -199,6 +202,7 @@ class ApiClient extends LocalStorageService {
       return ResponseModel(false, MyStrings.somethingWentWrong.tr, 499, '');
     }
   }
+*/
 
   String token = '';
   String tokenType = '';
