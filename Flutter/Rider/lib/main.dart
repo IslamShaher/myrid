@@ -1,4 +1,5 @@
-import 'dart:io';
+// import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:ovorideuser/core/helper/string_format_helper.dart';
 import 'package:ovorideuser/core/theme/light/light.dart';
 import 'package:ovorideuser/core/utils/audio_utils.dart';
@@ -16,6 +17,7 @@ import 'package:toastification/toastification.dart';
 import 'core/di_service/di_services.dart' as di_service;
 import 'data/services/api_client.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 
 //APP ENTRY POINT
@@ -47,23 +49,33 @@ Future<void> main() async {
   }
 
   // Override HTTP settings (e.g., SSL certificate handling)
-  HttpOverrides.global = MyHttpOverrides();
+  // HttpOverrides.global = MyHttpOverrides();
 
   // Set running ride status to false at app launch
   RunningRideService.instance.setIsRunning(false);
 
   tz.initializeTimeZones();
-  GoogleMapsFlutterAndroid().warmup();
+  if (!kIsWeb) {
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        GoogleMapsFlutterAndroid().warmup();
+      }
+    } catch (e) {
+      printX('Map warmup failed: $e');
+    }
+  }
   // Launch the main application with loaded languages
   runApp(OvoApp(languages: languages));
 }
 
+/*
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)..badCertificateCallback = (X509Certificate cert, String host, int port) => false;
   }
 }
+*/
 
 class OvoApp extends StatefulWidget {
   final Map<String, Map<String, String>> languages;
