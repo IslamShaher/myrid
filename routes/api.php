@@ -37,6 +37,7 @@ Route::namespace('Api\User')->group(function () {
             Route::post('login', 'login');
             Route::post('check-token', 'checkToken');
             Route::post('social-login', 'socialLogin');
+            Route::post('dev-login', 'devLogin');
         });
         Route::post('register', 'RegisterController@register');
         Route::controller('ForgotPasswordController')->group(function () {

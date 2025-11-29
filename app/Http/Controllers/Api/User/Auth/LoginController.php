@@ -172,4 +172,31 @@ class LoginController extends Controller
         $socialLogin = new SocialLogin("user",$request->provider);
         return $socialLogin->login();
     }
+
+    public function devLogin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return apiResponse("validation_error", "error", $validator->errors()->all());
+        }
+
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return apiResponse("user_not_found", "error", ['User not found']);
+        }
+
+        $tokenResult = $user->createToken('auth_token', ['user'])->plainTextToken;
+        $this->authenticated($request, $user);
+        $response[] = 'Login Successful';
+
+        return apiResponse("login_success", "success", $response, [
+            'user'         => $user,
+            'access_token' => $tokenResult,
+            'token_type'   => 'Bearer'
+        ]);
+    }
 }
