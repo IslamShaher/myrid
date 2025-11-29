@@ -23,6 +23,7 @@ use App\Http\Middleware\DriverVerification;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\TokenPermission;
 use App\Http\Middleware\VerifyCsrfToken;
+use App\Http\Middleware\Cors;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -32,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         using: function () {
             Route::namespace('App\Http\Controllers')->group(function () {
                 Route::prefix('api')
-                    ->middleware(['api', 'maintenance', 'developer.token'])
+                    ->middleware(['api', 'maintenance', 'developer.token', \App\Http\Middleware\Cors::class])
                     ->group(base_path('routes/api.php'));
                 Route::middleware(['web'])
                     ->namespace('Admin')
@@ -75,6 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest'                 => RedirectIfAuthenticated::class,
             'developer.token'       => DeveloperToken::class,
             'permission'            => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'cors'                  => Cors::class,
         ]);
         $middleware->validateCsrfTokens(
             except: ['user/deposit', 'ipn*']

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\User\Auth;
 use App\Constants\Status;
 use App\Http\Controllers\Controller;
 use App\Lib\SocialLogin;
+use App\Models\User;
 use App\Models\UserLogin;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -54,14 +56,65 @@ class LoginController extends Controller
             return apiResponse("validation_error", "error", $validator->errors()->all());
         }
 
-        $credentials = request([$this->username, 'password']);
-
-        if (!Auth::attempt(array_merge($credentials, ['is_deleted' => Status::NO]))) {
-            $response[] = 'The provided credentials can not match our record';
-            return apiResponse("invalid_credential", "error", $response);
+        // BYPASS MODE: Auto-create user if doesn't exist and skip password validation
+        $loginField = $this->username();
+        $loginValue = $request->input($loginField);
+        
+        // Find or create user
+        $user = User::where($loginField, $loginValue)
+            ->where('is_deleted', Status::NO)
+            ->first();
+        
+        if (!$user) {
+            // Create new user automatically (bypass registration)
+            $user = new User();
+            $user->{$loginField} = strtolower($loginValue);
+            
+            // Set default values
+            if ($loginField === 'email') {
+                $emailParts = explode('@', $loginValue);
+                $user->firstname = $emailParts[0] ?? 'User';
+                $user->lastname = 'User';
+                $baseUsername = $emailParts[0] ?? 'user';
+                // Ensure username is unique
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+                $user->username = $username;
+            } else {
+                $user->firstname = $loginValue;
+                $user->lastname = 'User';
+                $user->email = $loginValue . '@example.com';
+                // Ensure username is unique
+                $baseUsername = $loginValue;
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+                $user->username = $username;
+            }
+            
+            // Set password to a random hash (bypass password validation)
+            $user->password = Hash::make($request->input('password', 'bypass123'));
+            
+            // Set default status values
+            $user->ev = gs('ev') ? Status::UNVERIFIED : Status::VERIFIED;
+            $user->sv = gs('sv') ? Status::UNVERIFIED : Status::VERIFIED;
+            $user->ts = Status::DISABLE;
+            $user->tv = Status::VERIFIED;
+            $user->profile_complete = Status::YES; // Auto-complete profile for bypass
+            $user->is_deleted = Status::NO;
+            $user->save();
         }
 
-        $user        = $request->user();
+        // Log in the user without password validation
+        Auth::login($user);
+        
         $tokenResult = $user->createToken('auth_token', ['user'])->plainTextToken;
         $this->authenticated($request, $user);
         $response[] = 'Login Successful';
@@ -183,12 +236,39 @@ class LoginController extends Controller
             return apiResponse("validation_error", "error", $validator->errors()->all());
         }
 
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)
+            ->where('is_deleted', Status::NO)
+            ->first();
 
+        // Auto-create user if doesn't exist (bypass registration)
         if (!$user) {
-            return apiResponse("user_not_found", "error", ['User not found']);
+            $emailParts = explode('@', $request->email);
+            $user = new User();
+            $user->email = strtolower($request->email);
+            $user->firstname = $emailParts[0] ?? 'User';
+            $user->lastname = 'User';
+            // Ensure username is unique
+            $baseUsername = $emailParts[0] ?? 'user';
+            $username = $baseUsername;
+            $counter = 1;
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername . $counter;
+                $counter++;
+            }
+            $user->username = $username;
+            $user->password = Hash::make('bypass123');
+            $user->ev = gs('ev') ? Status::UNVERIFIED : Status::VERIFIED;
+            $user->sv = gs('sv') ? Status::UNVERIFIED : Status::VERIFIED;
+            $user->ts = Status::DISABLE;
+            $user->tv = Status::VERIFIED;
+            $user->profile_complete = Status::YES; // Auto-complete profile for bypass
+            $user->is_deleted = Status::NO;
+            $user->save();
         }
 
+        // Log in the user
+        Auth::login($user);
+        
         $tokenResult = $user->createToken('auth_token', ['user'])->plainTextToken;
         $this->authenticated($request, $user);
         $response[] = 'Login Successful';
