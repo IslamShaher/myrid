@@ -57,7 +57,7 @@ Future<void> main() async {
   if (!kIsWeb) {
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
+        GoogleMapsFlutterAndroid().useAndroidViewSurface = true;
       }
     } catch (e) {
       printX('Map warmup failed: $e');
