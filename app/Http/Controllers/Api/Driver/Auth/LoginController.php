@@ -62,7 +62,7 @@ class LoginController extends Controller
         }
 
         $driver        = $request->user('driver');
-        $tokenResult = $driver->createToken('driver_token', ['driver'])->plainTextToken;
+        $tokenResult = $driver->createToken('driver_token', ['driver', 'driver_token'])->plainTextToken;
         $this->authenticated($request, $driver);
         $response[] = 'Login Successful';
 

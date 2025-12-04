@@ -19,3 +19,4 @@ else
     echo "Laravel server started on http://0.0.0.0:8000"
 fi
 
+

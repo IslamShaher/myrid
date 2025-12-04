@@ -9,10 +9,26 @@ $kernel->bootstrap();
 use App\Models\User;
 use App\Models\Driver;
 use App\Models\ShuttleRoute;
+use App\Models\Zone;
 use Illuminate\Support\Facades\Auth;
 
 // --- CONFIGURATION ---
 $apiUrl = 'http://127.0.0.1:8000/api'; 
+// Ensure a zone exists for the test coordinates (10.0001, 10.0001)
+$zone = Zone::firstOrCreate(['name' => 'Simulation Zone'], [
+    'status' => 1
+]);
+
+// Force update coordinates to use 'lang' (legacy support)
+$zone->coordinates = [
+     ['lat' => 0.0, 'lang' => 0.0],
+     ['lat' => 0.0, 'lang' => 30.0],
+     ['lat' => 30.0, 'lang' => 30.0],
+     ['lat' => 30.0, 'lang' => 0.0],
+     ['lat' => 0.0, 'lang' => 0.0],
+];
+$zone->status = 1;
+$zone->save();
 
 // --- HELPER FUNCTIONS ---
 
@@ -42,10 +58,19 @@ function apiRequest($method, $endpoint, $token = null, $data = [], $isDriver = f
     }
     
     $response = curl_exec($ch);
+    if ($response === false) {
+        echo "CURL Error: " . curl_error($ch) . "\n";
+    }
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
-    return ['code' => $httpCode, 'body' => json_decode($response, true)];
+    $decoded = json_decode($response, true);
+    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+         echo "JSON Decode Error: " . json_last_error_msg() . "\n";
+         echo "Raw Response: " . substr($response, 0, 500) . "\n"; // Print first 500 chars
+    }
+
+    return ['code' => $httpCode, 'body' => $decoded];
 }
 
 function printStep($message) {
@@ -69,8 +94,8 @@ $startStop = $route->stops[0];
 $endStop = $route->stops[1];
 
 echo "Route: {$route->name} (ID: {$route->id})\n";
-echo "Pickup: {$startStop->name} (ID: {$startStop->id}) Lat: {$startStop->latitude}\n";
-echo "Dropoff: {$endStop->name} (ID: {$endStop->id}) Lat: {$endStop->latitude}\n";
+echo "Pickup: {$startStop->name} (ID: {$startStop->id}) Lat: {$startStop->latitude} Lng: {$startStop->longitude}\n";
+echo "Dropoff: {$endStop->name} (ID: {$endStop->id}) Lat: {$endStop->latitude} Lng: {$endStop->longitude}\n";
 
 // 2. RIDER LOGIN
 printStep("Rider Login...");
@@ -78,7 +103,7 @@ $user = User::firstOrCreate(
     ['email' => 'rider@simulation.com'],
     ['username' => 'rider_sim', 'password' => bcrypt('password'), 'country_code' => '1', 'mobile' => '1234567890']
 );
-$riderLogin = apiRequest('POST', '/login', null, ['username' => 'rider_sim', 'password' => 'password']);
+$riderLogin = apiRequest('POST', '/login', null, ['username' => 'rider@simulation.com', 'password' => 'password']);
 if ($riderLogin['code'] != 200) printError("Rider login failed.");
 $riderToken = $riderLogin['body']['data']['access_token'];
 echo "Rider Token: " . substr($riderToken, 0, 20) . "...\n";
@@ -89,10 +114,16 @@ $driver = \App\Models\Driver::firstOrCreate(
     ['email' => 'driver@simulation.com'],
     ['username' => 'driver_sim', 'password' => bcrypt('password'), 'country_code' => '1', 'mobile' => '0987654321', 'service_id' => 1, 'zone_id' => 1]
 );
-$driverLogin = apiRequest('POST', '/driver/login', null, ['username' => 'driver_sim', 'password' => 'password']);
+$driverLogin = apiRequest('POST', '/driver/login', null, ['username' => 'driver@simulation.com', 'password' => 'password']);
 if ($driverLogin['code'] != 200) printError("Driver login failed.");
 $driverToken = $driverLogin['body']['data']['access_token'];
 echo "Driver Token: " . substr($driverToken, 0, 20) . "...\n";
+
+// CLEANUP: Cancel active rides for this user to prevent blocking
+\App\Models\Ride::where('user_id', $user->id)
+    ->whereIn('status', [\App\Constants\Status::RIDE_ACTIVE, \App\Constants\Status::RIDE_RUNNING])
+    ->update(['status' => \App\Constants\Status::RIDE_CANCELED]);
+echo "Cleaned up active rides for user.\n";
 
 
 // 4. RIDER SEARCH & BOOK
@@ -108,6 +139,13 @@ if ($match['code'] != 200) {
     print_r($match['body']); // Debug output
     printError("No matching route found.");
 }
+
+if (!isset($match['body']['matches'])) {
+    echo "ERROR: 'matches' key missing in response.\n";
+    print_r($match['body']);
+    exit(1);
+}
+
 $foundRoute = $match['body']['matches'][0];
 echo "Found Route: {$foundRoute['route']['name']}\n";
 
@@ -123,9 +161,20 @@ if ($book['code'] != 200) {
     print_r($book['body']);
     printError("Booking failed.");
 }
+
+if (!isset($book['body']['data'])) {
+     echo "ERROR: 'data' key missing in booking response.\n";
+     print_r($book['body']);
+     exit(1);
+}
+
 $rideData = $book['body']['data']['ride'];
 $rideId = $rideData['id'];
 echo "Ride Created! ID: $rideId, UID: {$rideData['uid']}\n";
+
+// Debug Ride State
+$rideDebug = \App\Models\Ride::find($rideId);
+echo "Ride Debug - Type: {$rideDebug->ride_type}, Status: {$rideDebug->status}, Route: {$rideDebug->route_id}, Driver: {$rideDebug->driver_id}\n";
 
 
 // 5. DRIVER START TRIP
@@ -133,6 +182,7 @@ printStep("Driver Starting Trip...");
 $startTrip = apiRequest('POST', '/driver/shuttle/start', $driverToken, [
     'route_id' => $route->id
 ], true);
+print_r($startTrip['body']); // Debug Response
 
 if ($startTrip['code'] != 200) {
     print_r($startTrip['body']);
@@ -142,6 +192,8 @@ echo "Trip Started. Driver assigned to relevant rides.\n";
 
 // Verify assignment
 $ride = \App\Models\Ride::find($rideId);
+echo "Post-Start Ride State - Driver ID: {$ride->driver_id}, Expected: {$driver->id}\n";
+
 if ($ride->driver_id != $driver->id) printError("Driver was NOT assigned to the ride.");
 echo "SUCCESS: Driver ID {$driver->id} assigned to Ride ID {$rideId}.\n";
 

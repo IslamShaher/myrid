@@ -9,6 +9,8 @@ class Zone extends Model
 {
     use  GlobalStatus;
 
+    protected $guarded = ['id'];
+
     protected $casts = [
         'coordinates'  => "array",
         'status'       => "integer"

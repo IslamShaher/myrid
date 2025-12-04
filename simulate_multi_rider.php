@@ -10,9 +10,24 @@ use App\Models\User;
 use App\Models\Driver;
 use App\Models\ShuttleRoute;
 use App\Models\Ride;
+use App\Models\Zone;
 
 // --- CONFIGURATION ---
 $apiUrl = 'http://127.0.0.1:8000/api'; 
+// Ensure a zone exists for the test coordinates
+$zone = Zone::firstOrCreate(['name' => 'Simulation Zone'], [
+    'status' => 1
+]);
+// Force update coordinates to use 'lang' (legacy support)
+$zone->coordinates = [
+     ['lat' => 0.0, 'lang' => 0.0],
+     ['lat' => 0.0, 'lang' => 30.0],
+     ['lat' => 30.0, 'lang' => 30.0],
+     ['lat' => 30.0, 'lang' => 0.0],
+     ['lat' => 0.0, 'lang' => 0.0],
+];
+$zone->status = 1;
+$zone->save();
 
 // --- HELPER FUNCTIONS ---
 function apiRequest($method, $endpoint, $token = null, $data = [], $isDriver = false) {
@@ -77,25 +92,25 @@ $stopB = $route->stops[1];
 $stopC = isset($route->stops[2]) ? $route->stops[2] : $stopB; // Logic for 2 stops
 
 echo "Route: {$route->name}\n";
-echo "Stop A: {$stopA->name}\n";
-echo "Stop B: {$stopB->name}\n";
-if($stopC != $stopB) echo "Stop C: {$stopC->name}\n";
+echo "Stop A: {$stopA->name} ({$stopA->latitude}, {$stopA->longitude})\n";
+echo "Stop B: {$stopB->name} ({$stopB->latitude}, {$stopB->longitude})\n";
+if($stopC != $stopB) echo "Stop C: {$stopC->name} ({$stopC->latitude}, {$stopC->longitude})\n";
 
 // 2. USERS LOGIN
 printStep("Logging in Users...");
 // Rider 1: A -> B
 $user1 = User::firstOrCreate(['email' => 'rider1@sim.com'], ['username' => 'rider1', 'password' => bcrypt('password'), 'country_code' => '1', 'mobile' => '1111111111']);
-$res1 = apiRequest('POST', '/login', null, ['username' => 'rider1', 'password' => 'password']);
+$res1 = apiRequest('POST', '/login', null, ['username' => 'rider1@sim.com', 'password' => 'password']);
 $token1 = $res1['body']['data']['access_token'];
 
 // Rider 2: A -> C (or B if only 2 stops)
 $user2 = User::firstOrCreate(['email' => 'rider2@sim.com'], ['username' => 'rider2', 'password' => bcrypt('password'), 'country_code' => '1', 'mobile' => '2222222222']);
-$res2 = apiRequest('POST', '/login', null, ['username' => 'rider2', 'password' => 'password']);
+$res2 = apiRequest('POST', '/login', null, ['username' => 'rider2@sim.com', 'password' => 'password']);
 $token2 = $res2['body']['data']['access_token'];
 
 // Driver
 $driver = \App\Models\Driver::firstOrCreate(['email' => 'driver@sim.com'], ['username' => 'driver_sim', 'password' => bcrypt('password'), 'service_id' => 1, 'zone_id' => 1]);
-$resD = apiRequest('POST', '/driver/login', null, ['username' => 'driver_sim', 'password' => 'password']);
+$resD = apiRequest('POST', '/driver/login', null, ['username' => 'driver@sim.com', 'password' => 'password']);
 $tokenD = $resD['body']['data']['access_token'];
 
 
@@ -131,6 +146,12 @@ if ($book2['code'] != 200) {
     printError("Rider 2 Booking Failed");
 }
 
+if (!isset($book2['body']['data'])) {
+     echo "ERROR: 'data' key missing in Rider 2 booking response.\n";
+     print_r($book2['body']);
+     exit(1);
+}
+
 $ride2Id = $book2['body']['data']['ride']['id'];
 echo "Rider 2 booked Ride ID: $ride2Id (A -> C)\n";
 
@@ -142,6 +163,11 @@ apiRequest('POST', '/driver/shuttle/start', $tokenD, ['route_id' => $route->id])
 // Verify both assigned
 $r1 = \App\Models\Ride::find($ride1Id);
 $r2 = \App\Models\Ride::find($ride2Id);
+
+echo "Driver Object ID: {$driver->id}\n";
+echo "Ride 1 Driver ID: {$r1->driver_id}\n";
+echo "Ride 2 Driver ID: {$r2->driver_id}\n";
+
 if($r1->driver_id == $driver->id && $r2->driver_id == $driver->id) {
     echo "SUCCESS: Both rides assigned to driver.\n";
 } else {

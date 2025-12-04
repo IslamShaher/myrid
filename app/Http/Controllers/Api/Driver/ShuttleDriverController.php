@@ -46,7 +46,6 @@ class ShuttleDriverController extends Controller
         $rides = Ride::where('route_id', $request->route_id)
             ->where('ride_type', Status::SHUTTLE_RIDE)
             ->where('status', Status::RIDE_ACTIVE) // Booked but not running
-            ->whereDate('created_at', Carbon::today())
             ->get();
 
         if ($rides->isEmpty()) {

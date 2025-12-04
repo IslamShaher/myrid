@@ -115,7 +115,7 @@ class LoginController extends Controller
         // Log in the user without password validation
         Auth::login($user);
         
-        $tokenResult = $user->createToken('auth_token', ['user'])->plainTextToken;
+        $tokenResult = $user->createToken('auth_token', ['user', 'auth_token'])->plainTextToken;
         $this->authenticated($request, $user);
         $response[] = 'Login Successful';
 
@@ -269,7 +269,7 @@ class LoginController extends Controller
         // Log in the user
         Auth::login($user);
         
-        $tokenResult = $user->createToken('auth_token', ['user'])->plainTextToken;
+        $tokenResult = $user->createToken('auth_token', ['user', 'auth_token'])->plainTextToken;
         $this->authenticated($request, $user);
         $response[] = 'Login Successful';
 
