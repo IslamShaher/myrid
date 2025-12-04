@@ -18,7 +18,6 @@ import 'core/di_service/di_services.dart' as di_service;
 import 'data/services/api_client.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 
 //APP ENTRY POINT
 Future<void> main() async {
@@ -58,7 +57,7 @@ Future<void> main() async {
   if (!kIsWeb) {
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        GoogleMapsFlutterAndroid().warmup();
+        AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
       }
     } catch (e) {
       printX('Map warmup failed: $e');

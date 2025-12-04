@@ -133,7 +133,6 @@ class ApiClient extends LocalStorageService {
     }
   }
 
-/*
   /// Multipart Request
   Future<ResponseModel> multipartRequest(
     String uri,
@@ -202,7 +201,6 @@ class ApiClient extends LocalStorageService {
       return ResponseModel(false, MyStrings.somethingWentWrong.tr, 499, '');
     }
   }
-*/
 
   String token = '';
   String tokenType = '';

@@ -13,7 +13,7 @@ class SocialAuthController extends GetxController {
   SocialAuthRepo authRepo;
   SocialAuthController({required this.authRepo});
 
-  final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+  final GoogleSignIn googleSignIn = GoogleSignIn();
   bool isGoogleSignInLoading = false;
 
   Future<void> signInWithGoogle() async {
@@ -22,20 +22,25 @@ class SocialAuthController extends GetxController {
       update();
       const List<String> scopes = <String>['email', 'profile'];
       googleSignIn.signOut();
-      await googleSignIn.initialize();
-      var googleUser = await googleSignIn.authenticate();
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      // await googleSignIn.initialize();
+      var googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        isGoogleSignInLoading = false;
+        update();
+        return;
+      }
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       if (googleAuth.idToken == null) {
         isGoogleSignInLoading = false;
         update();
         return;
       }
-      final GoogleSignInClientAuthorization? authorization = await googleUser.authorizationClient.authorizationForScopes(scopes);
-      printX(authorization?.accessToken);
+      // final GoogleSignInClientAuthorization? authorization = await googleUser.authorizationClient.authorizationForScopes(scopes);
+      printX(googleAuth.accessToken);
 
       await socialLoginUser(
         provider: 'google',
-        accessToken: authorization?.accessToken ?? '',
+        accessToken: googleAuth.accessToken ?? '',
       );
     } catch (e) {
       printX(e.toString());

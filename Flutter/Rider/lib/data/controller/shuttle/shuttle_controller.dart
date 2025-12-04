@@ -72,7 +72,7 @@ class ShuttleController extends GetxController {
         Get.to(() => RideDetailsScreen(rideId: rideId));
         clearData();
       } else {
-        CustomSnackBar.error(errorList: responseModel.errorJson.isNotEmpty ? responseModel.errorJson : [responseModel.message]);
+        CustomSnackBar.error(errorList: [responseModel.message]);
       }
     } catch (e) {
       CustomSnackBar.error(errorList: [MyStrings.somethingWentWrong.tr]);
