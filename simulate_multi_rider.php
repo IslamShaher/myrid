@@ -75,10 +75,10 @@ function printError($message) {
 printStep("Initializing Multi-Rider Simulation...");
 
 // Clear existing rides for test users to prevent "active ride" error
-$u1 = User::where('username', 'rider1')->first();
-if($u1) Ride::where('user_id', $u1->id)->delete();
-$u2 = User::where('username', 'rider2')->first();
-if($u2) Ride::where('user_id', $u2->id)->delete();
+$u1 = User::where('email', 'rider1@sim.com')->first();
+if($u1) Ride::where('user_id', $u1->id)->update(['status' => \App\Constants\Status::RIDE_CANCELED]);
+$u2 = User::where('email', 'rider2@sim.com')->first();
+if($u2) Ride::where('user_id', $u2->id)->update(['status' => \App\Constants\Status::RIDE_CANCELED]);
 
 
 // 1. DATA SETUP
@@ -128,6 +128,12 @@ $book1 = apiRequest('POST', '/shuttle/create', $token1, [
 if ($book1['code'] != 200) {
     print_r($book1['body']);
     printError("Rider 1 Booking Failed");
+}
+
+if (!isset($book1['body']['data'])) {
+     echo "ERROR: 'data' key missing in Rider 1 booking response.\n";
+     print_r($book1['body']);
+     exit(1);
 }
 
 $ride1Id = $book1['body']['data']['ride']['id'];
