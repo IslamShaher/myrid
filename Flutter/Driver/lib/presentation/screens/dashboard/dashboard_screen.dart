@@ -7,8 +7,10 @@ import 'package:ovoride_driver/data/controller/dashboard/dashboard_controller.da
 import 'package:ovoride_driver/data/controller/pusher/global_pusher_controller.dart';
 import 'package:ovoride_driver/data/controller/ride/ride_action/ride_action_controller.dart';
 import 'package:ovoride_driver/data/controller/ride/all_ride/all_ride_controller.dart';
+import 'package:ovoride_driver/data/controller/shuttle/shuttle_driver_controller.dart';
 import 'package:ovoride_driver/data/repo/dashboard/dashboard_repo.dart';
 import 'package:ovoride_driver/data/repo/ride/ride_repo.dart';
+import 'package:ovoride_driver/data/repo/shuttle/shuttle_driver_repo.dart';
 import 'package:ovoride_driver/presentation/components/annotated_region/annotated_region_widget.dart';
 import 'package:ovoride_driver/presentation/components/image/custom_svg_picture.dart';
 import 'package:ovoride_driver/presentation/screens/ride_history/ride_activity_screen.dart';
@@ -16,6 +18,7 @@ import 'package:ovoride_driver/core/utils/my_color.dart';
 import 'package:ovoride_driver/presentation/components/will_pop_widget.dart';
 import 'package:ovoride_driver/presentation/screens/profile_and_settings/profile_and_settings_screen.dart';
 import 'package:ovoride_driver/presentation/screens/rides/home_screen/home_screen.dart';
+import 'package:ovoride_driver/presentation/screens/shuttle/shuttle_route_list_screen.dart';
 import '../../packages/flutter_floating_bottom_navigation_bar/floating_bottom_navigation_bar.dart';
 
 class DashBoardScreen extends StatefulWidget {
@@ -34,6 +37,9 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     Get.put(RideRepo(apiClient: Get.find()));
     Get.put(DashBoardRepo(apiClient: Get.find()));
     Get.put(DashBoardController(repo: Get.find()));
+    Get.put(ShuttleDriverRepo(apiClient: Get.find()));
+    Get.put(ShuttleDriverController(repo: Get.find()));
+    
     var globalPusherController = Get.put(
       GlobalPusherController(
         apiClient: Get.find(),
@@ -49,6 +55,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           changeScreen(0);
         },
       ),
+      const ShuttleRouteListScreen(), // Added Shuttle Screen
       const ProfileAndSettingsScreen(),
     ];
     super.initState();
@@ -114,11 +121,19 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                   ),
                 ),
                 FloatingNavbarItem(
+                  icon: Icons.directions_bus,
+                  title: "Shuttle",
+                  customWidget: Icon(
+                    Icons.directions_bus,
+                    color: selectedIndex == 2 ? MyColor.primaryColor : MyColor.bodyMutedTextColor,
+                  ),
+                ),
+                FloatingNavbarItem(
                   icon: Icons.list,
                   title: MyStrings.menu.tr,
                   customWidget: CustomSvgPicture(
-                    image: selectedIndex == 2 ? MyIcons.menuActive : MyIcons.menu,
-                    color: selectedIndex == 2 ? MyColor.primaryColor : MyColor.bodyMutedTextColor,
+                    image: selectedIndex == 3 ? MyIcons.menuActive : MyIcons.menu,
+                    color: selectedIndex == 3 ? MyColor.primaryColor : MyColor.bodyMutedTextColor,
                   ),
                 ),
               ],

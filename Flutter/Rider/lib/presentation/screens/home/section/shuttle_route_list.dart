@@ -20,7 +20,7 @@ class ShuttleRouteList extends StatelessWidget {
         }
 
         if (controller.shuttleRouteModel == null ||
-            (controller.shuttleRouteModel?.matchedRoutes?.isEmpty ?? true)) {
+            (controller.shuttleRouteModel?.matches?.isEmpty ?? true)) {
           return Container(
             width: double.infinity,
             padding: EdgeInsets.all(Dimensions.space20),
@@ -60,10 +60,10 @@ class ShuttleRouteList extends StatelessWidget {
               ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
-                itemCount: controller.shuttleRouteModel?.matchedRoutes?.length ?? 0,
+                itemCount: controller.shuttleRouteModel?.matches?.length ?? 0,
                 itemBuilder: (context, index) {
                   return ShuttleRouteCard(
-                    route: controller.shuttleRouteModel!.matchedRoutes![index],
+                    match: controller.shuttleRouteModel!.matches![index],
                     controller: controller,
                     index: index,
                   );

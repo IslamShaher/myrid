@@ -8,13 +8,13 @@ import 'package:ovorideuser/data/model/shuttle/shuttle_route_model.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
 
 class ShuttleRouteCard extends StatelessWidget {
-  final MatchedRoute route;
+  final ShuttleMatch match;
   final ShuttleController controller;
   final int index;
 
   const ShuttleRouteCard({
     super.key,
-    required this.route,
+    required this.match,
     required this.controller,
     required this.index,
   });
@@ -23,18 +23,18 @@ class ShuttleRouteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        controller.selectRoute(route);
+        controller.selectMatch(match);
       },
       child: Container(
         margin: EdgeInsets.only(bottom: Dimensions.space10),
         padding: EdgeInsets.all(Dimensions.space15),
         decoration: BoxDecoration(
-          color: controller.selectedRoute?.id == route.id
+          color: controller.selectedMatch?.route?.id == match.route?.id && controller.selectedMatch?.startStop?.id == match.startStop?.id
               ? MyColor.primaryColor.withValues(alpha: 0.1)
               : MyColor.colorWhite,
           borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
           border: Border.all(
-            color: controller.selectedRoute?.id == route.id
+            color: controller.selectedMatch?.route?.id == match.route?.id && controller.selectedMatch?.startStop?.id == match.startStop?.id
                 ? MyColor.primaryColor
                 : MyColor.borderColor,
             width: 1,
@@ -49,7 +49,7 @@ class ShuttleRouteCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    route.name ?? '',
+                    match.route?.name ?? '',
                     style: boldMediumLarge.copyWith(color: MyColor.getTextColor()),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -62,8 +62,23 @@ class ShuttleRouteCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(Dimensions.defaultRadius),
                   ),
                   child: Text(
-                    route.code ?? '',
+                    match.route?.code ?? '',
                     style: regularSmall.copyWith(color: MyColor.primaryColor),
+                  ),
+                ),
+              ],
+            ),
+            spaceDown(Dimensions.space10),
+            Row(
+              children: [
+                Icon(Icons.access_time, color: MyColor.primaryColor, size: 20),
+                spaceSide(Dimensions.space10),
+                Expanded(
+                  child: Text(
+                    match.nextSchedule != null 
+                        ? "Next: ${match.nextSchedule}"
+                        : "No Schedule",
+                    style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
                   ),
                 ),
               ],
@@ -73,9 +88,26 @@ class ShuttleRouteCard extends StatelessWidget {
               children: [
                 Icon(Icons.directions_bus, color: MyColor.primaryColor, size: 20),
                 spaceSide(Dimensions.space10),
-                Text(
-                  "${route.stops?.length ?? 0} Stops",
-                  style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
+                Expanded(
+                  child: Text(
+                    "From: ${match.startStop?.name}",
+                    style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            spaceDown(Dimensions.space5),
+            Row(
+              children: [
+                Icon(Icons.location_on, color: MyColor.redCancelTextColor, size: 20),
+                spaceSide(Dimensions.space10),
+                Expanded(
+                  child: Text(
+                    "To: ${match.endStop?.name}",
+                    style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),

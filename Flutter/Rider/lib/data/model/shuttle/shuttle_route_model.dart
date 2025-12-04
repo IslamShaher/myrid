@@ -1,19 +1,17 @@
+import 'package:ovorideuser/data/model/global/response_model/response_model.dart';
+
 class ShuttleRouteModel {
   bool? success;
-  Stop? startStop;
-  Stop? endStop;
-  List<MatchedRoute>? matchedRoutes;
+  List<ShuttleMatch>? matches;
 
-  ShuttleRouteModel({this.success, this.startStop, this.endStop, this.matchedRoutes});
+  ShuttleRouteModel({this.success, this.matches});
 
   ShuttleRouteModel.fromJson(Map<String, dynamic> json) {
     success = json['success'];
-    startStop = json['start_stop'] != null ? Stop.fromJson(json['start_stop']) : null;
-    endStop = json['end_stop'] != null ? Stop.fromJson(json['end_stop']) : null;
-    if (json['matched_routes'] != null) {
-      matchedRoutes = <MatchedRoute>[];
-      json['matched_routes'].forEach((v) {
-        matchedRoutes!.add(MatchedRoute.fromJson(v));
+    if (json['matches'] != null) {
+      matches = <ShuttleMatch>[];
+      json['matches'].forEach((v) {
+        matches!.add(ShuttleMatch.fromJson(v));
       });
     }
   }
@@ -21,15 +19,43 @@ class ShuttleRouteModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['success'] = success;
+    if (matches != null) {
+      data['matches'] = matches!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+}
+
+class ShuttleMatch {
+  MatchedRoute? route;
+  Stop? startStop;
+  Stop? endStop;
+  double? walkingDistance;
+  String? nextSchedule;
+
+  ShuttleMatch({this.route, this.startStop, this.endStop, this.walkingDistance, this.nextSchedule});
+
+  ShuttleMatch.fromJson(Map<String, dynamic> json) {
+    route = json['route'] != null ? MatchedRoute.fromJson(json['route']) : null;
+    startStop = json['start_stop'] != null ? Stop.fromJson(json['start_stop']) : null;
+    endStop = json['end_stop'] != null ? Stop.fromJson(json['end_stop']) : null;
+    walkingDistance = json['walking_distance'] != null ? double.parse(json['walking_distance'].toString()) : 0.0;
+    nextSchedule = json['next_schedule'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    if (route != null) {
+      data['route'] = route!.toJson();
+    }
     if (startStop != null) {
       data['start_stop'] = startStop!.toJson();
     }
     if (endStop != null) {
       data['end_stop'] = endStop!.toJson();
     }
-    if (matchedRoutes != null) {
-      data['matched_routes'] = matchedRoutes!.map((v) => v.toJson()).toList();
-    }
+    data['walking_distance'] = walkingDistance;
+    data['next_schedule'] = nextSchedule;
     return data;
   }
 }

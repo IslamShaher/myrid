@@ -19,5 +19,9 @@ class ShuttleRoute extends Model
                     ->withPivot('order')
                     ->orderBy('pivot_order');
     }
-}
 
+    public function schedules()
+    {
+        return $this->hasMany(RouteSchedule::class, 'route_id');
+    }
+}

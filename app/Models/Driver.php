@@ -32,6 +32,10 @@ class Driver extends Authenticatable
         'balance'
     ];
 
+    protected $fillable = [
+        'firstname', 'lastname', 'email', 'username', 'password', 'country_code', 'mobile', 'service_id', 'zone_id'
+    ];
+
     /**
      * The attributes that should be cast to native types.
      *

@@ -23,6 +23,10 @@ class User extends Authenticatable
         'balance'
     ];
 
+    protected $fillable = [
+        'email', 'username', 'password', 'country_code', 'mobile', 'firstname', 'lastname', 'ref_by'
+    ];
+
     /**
      * The attributes that should be cast to native types.
      *

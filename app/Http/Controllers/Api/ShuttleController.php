@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ShuttleRoute;
 use App\Models\Stop;
+use App\Models\RouteSchedule;
 use App\Services\GoogleMapsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class ShuttleController extends Controller
 {
@@ -56,32 +58,23 @@ class ShuttleController extends Controller
         $endLat   = $request->end_lat;
         $endLng   = $request->end_lng;
 
-        // Search radius in meters (e.g., 1000m = 1km)
+        // Search radius in meters (1km)
         $radius = 1000;
 
+        // Safe Haversine Formula using LEAST to prevent acos(>1) errors
+        $haversine = "(6371000 * acos(LEAST(1.0, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))))";
+
         // 🔍 Find ALL nearby start stops
-        $startStops = Stop::selectRaw("
-            stops.*,
-            ST_Distance_Sphere(
-                point(longitude, latitude),
-                point(?, ?)
-            ) AS distance
-        ", [$startLng, $startLat])
-        ->having('distance', '<=', $radius)
-        ->orderBy('distance')
-        ->get();
+        $startStops = Stop::selectRaw("*, $haversine AS distance", [$startLat, $startLng, $startLat])
+            ->having('distance', '<=', $radius)
+            ->orderBy('distance')
+            ->get();
 
         // 🔍 Find ALL nearby end stops
-        $endStops = Stop::selectRaw("
-            stops.*,
-            ST_Distance_Sphere(
-                point(longitude, latitude),
-                point(?, ?)
-            ) AS distance
-        ", [$endLng, $endLat])
-        ->having('distance', '<=', $radius)
-        ->orderBy('distance')
-        ->get();
+        $endStops = Stop::selectRaw("*, $haversine AS distance", [$endLat, $endLng, $endLat])
+            ->having('distance', '<=', $radius)
+            ->orderBy('distance')
+            ->get();
 
         if ($startStops->isEmpty() || $endStops->isEmpty()) {
             return response()->json([
@@ -95,37 +88,51 @@ class ShuttleController extends Controller
         $endStopIds = $endStops->pluck('id')->toArray();
 
         // 🔍 Find routes that have at least one start stop AND one end stop
-        // AND where the start stop comes BEFORE the end stop
         $routes = ShuttleRoute::whereHas('stops', function ($q) use ($startStopIds) {
             $q->whereIn('stops.id', $startStopIds);
         })
         ->whereHas('stops', function ($q) use ($endStopIds) {
             $q->whereIn('stops.id', $endStopIds);
         })
-        ->with(['stops' => function ($q) {
-            $q->orderBy('pivot_order');
+        ->with(['stops', 'schedules' => function($q) {
+            $q->where('status', 1)->orderBy('start_time');
         }])
         ->get();
 
         foreach ($routes as $route) {
-            // Find the best pair of stops for this route
             $bestStart = null;
             $bestEnd = null;
-            $minDistance = floatval('inf');
+            $minDistance = PHP_FLOAT_MAX; // Use PHP constant instead of floatval('inf')
 
-            // Filter route stops to only those in our nearby lists
-            $routeStartStops = $route->stops->whereIn('id', $startStopIds);
-            $routeEndStops = $route->stops->whereIn('id', $endStopIds);
+            // Filter stops from the loaded relation
+            // Use strict comparison false just in case types differ (string vs int)
+            $possibleStarts = $route->stops->filter(function($stop) use ($startStopIds) {
+                return in_array($stop->id, $startStopIds);
+            });
+            
+            $possibleEnds = $route->stops->filter(function($stop) use ($endStopIds) {
+                return in_array($stop->id, $endStopIds);
+            });
 
-            foreach ($routeStartStops as $sStop) {
-                foreach ($routeEndStops as $eStop) {
+            foreach ($possibleStarts as $sStop) {
+                foreach ($possibleEnds as $eStop) {
+                    // Ensure pivot exists and not the same stop
+                    if (!$sStop->pivot || !$eStop->pivot || $sStop->id == $eStop->id) {
+                        continue;
+                    }
+                    
                     // Check order: Start must be before End
                     if ($sStop->pivot->order < $eStop->pivot->order) {
-                        // Calculate total walking distance (start->stop + stop->end)
-                        // We already have distance from user to stop in the 'distance' attribute from the query
-                        // But we need to retrieve it from the original collections because relation loaded stops won't have it
-                        $sDist = $startStops->firstWhere('id', $sStop->id)->distance;
-                        $eDist = $endStops->firstWhere('id', $eStop->id)->distance;
+                        
+                        $sDistObj = $startStops->firstWhere('id', $sStop->id);
+                        $eDistObj = $endStops->firstWhere('id', $eStop->id);
+                        
+                        if (!$sDistObj || !$eDistObj) {
+                            continue;
+                        }
+                        
+                        $sDist = $sDistObj->distance;
+                        $eDist = $eDistObj->distance;
                         $totalDist = $sDist + $eDist;
 
                         if ($totalDist < $minDistance) {
@@ -138,11 +145,19 @@ class ShuttleController extends Controller
             }
 
             if ($bestStart && $bestEnd) {
+                // Find next available schedule
+                $currentTime = Carbon::now()->format('H:i:s');
+                $nextSchedule = $route->schedules->where('start_time', '>=', $currentTime)->first();
+                
+                // If no schedule for today, maybe show first schedule of tomorrow or just null
+                $nextScheduleTime = $nextSchedule ? $nextSchedule->start_time : null;
+
                 $matchedRoutes[] = [
                     'route' => $route,
                     'start_stop' => $bestStart,
                     'end_stop' => $bestEnd,
-                    'walking_distance' => $minDistance
+                    'walking_distance' => $minDistance,
+                    'next_schedule' => $nextScheduleTime
                 ];
             }
         }
@@ -154,8 +169,17 @@ class ShuttleController extends Controller
             ], 404);
         }
 
-        // Sort by walking distance
+        // Sort by time then walking distance
         usort($matchedRoutes, function ($a, $b) {
+            // Prioritize routes with upcoming schedules
+            if ($a['next_schedule'] && !$b['next_schedule']) return -1;
+            if (!$a['next_schedule'] && $b['next_schedule']) return 1;
+            
+            if ($a['next_schedule'] && $b['next_schedule']) {
+                 $timeCmp = strcmp($a['next_schedule'], $b['next_schedule']);
+                 if ($timeCmp !== 0) return $timeCmp;
+            }
+            
             return $a['walking_distance'] <=> $b['walking_distance'];
         });
 
@@ -195,7 +219,6 @@ class ShuttleController extends Controller
             DB::beginTransaction();
 
             // 2. Validate route and stops with lock for capacity check
-            // Using lockForUpdate to prevent race conditions on capacity
             $route = ShuttleRoute::where('id', $request->route_id)->lockForUpdate()->first();
 
             if (!$route) {
@@ -233,7 +256,7 @@ class ShuttleController extends Controller
                 return apiResponse('validation_error', 'error', $notify);
             }
 
-            // 3. Calculate distance and duration using Google Maps Service
+            // 3. Calculate distance and duration
             $googleMapData = $this->googleMapsService->getDistanceMatrix(
                 $startStop->latitude,
                 $startStop->longitude,
@@ -262,20 +285,27 @@ class ShuttleController extends Controller
             }
 
             // 5. Calculate pricing
-            // Use route specific pricing if available, otherwise defaults
             $distance = $googleMapData['distance'];
             $basePrice = $route->base_price ?? 5.00;
             $pricePerKm = $route->price_per_km ?? 2.00;
             $amount = $basePrice + ($distance * $pricePerKm);
-            
-            // Multiply by passengers
             $totalAmount = $amount * $request->number_of_passenger;
 
-            // 6. Create ride
+            // 6. Get Schedule Time
+            $currentTime = Carbon::now()->format('H:i:s');
+            $schedule = RouteSchedule::where('route_id', $route->id)
+                ->where('status', 1)
+                ->where('start_time', '>=', $currentTime)
+                ->orderBy('start_time')
+                ->first();
+            
+            $startTime = $schedule ? $schedule->start_time : Carbon::now()->format('H:i:s');
+
+            // 7. Create ride
             $ride = new \App\Models\Ride();
             $ride->uid                   = getTrx(10);
             $ride->user_id               = auth()->id();
-            $ride->service_id            = 1; // Default service ID - Consider making this dynamic
+            $ride->service_id            = 1; 
             $ride->route_id              = $route->id;
             $ride->start_stop_id         = $startStop->id;
             $ride->end_stop_id           = $endStop->id;
@@ -287,7 +317,7 @@ class ShuttleController extends Controller
             $ride->destination_longitude = $endStop->longitude;
             $ride->ride_type             = \App\Constants\Status::SHUTTLE_RIDE;
             $ride->status                = \App\Constants\Status::RIDE_ACTIVE;
-            $ride->payment_type          = \App\Constants\Status::PAYMENT_TYPE_CASH; // TODO: Support other types
+            $ride->payment_type          = \App\Constants\Status::PAYMENT_TYPE_CASH; 
             $ride->distance              = $googleMapData['distance'];
             $ride->duration              = $googleMapData['duration'];
             $ride->number_of_passenger   = $request->number_of_passenger;
@@ -297,9 +327,10 @@ class ShuttleController extends Controller
             $ride->min_amount            = $totalAmount;
             $ride->max_amount            = $totalAmount;
             $ride->amount                = $totalAmount;
-            $ride->commission_percentage = 10; // 10% commission
+            $ride->commission_percentage = 10; 
             $ride->otp                   = getNumber(4);
-            $ride->driver_id             = 0; // No driver assigned yet
+            $ride->driver_id             = 0; 
+            $ride->start_time            = $startTime; // Save schedule time
             $ride->save();
 
             DB::commit();
@@ -309,12 +340,10 @@ class ShuttleController extends Controller
             return apiResponse('server_error', 'error', $notify);
         }
 
-        // 7. Send Pusher event to user
         event(new \App\Events\Ride("rider-user-{$ride->user_id}", "NEW_RIDE_CREATED", [
             'ride' => $ride,
         ]));
 
-        // 8. Load relationships
         $ride->load('user', 'service');
 
         $notify[] = 'Shuttle ride booked successfully';
@@ -323,9 +352,6 @@ class ShuttleController extends Controller
         ]);
     }
 
-    /**
-     * Get zones for pickup and destination
-     */
     private function getZone($pickupLat, $pickupLng, $destLat, $destLng)
     {
         $zones = \App\Models\Zone::active()->get();
@@ -361,4 +387,3 @@ class ShuttleController extends Controller
         ];
     }
 }
-

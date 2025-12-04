@@ -12,7 +12,7 @@ class ShuttleController extends GetxController {
 
   bool isLoading = false;
   ShuttleRouteModel? shuttleRouteModel;
-  MatchedRoute? selectedRoute;
+  ShuttleMatch? selectedMatch;
 
   Future<void> matchRoute({
     required double startLat,
@@ -33,7 +33,7 @@ class ShuttleController extends GetxController {
 
       if (responseModel.statusCode == 200) {
         shuttleRouteModel = ShuttleRouteModel.fromJson(responseModel.responseJson);
-        if (shuttleRouteModel?.matchedRoutes?.isEmpty ?? true) {
+        if (shuttleRouteModel?.matches?.isEmpty ?? true) {
           CustomSnackBar.error(errorList: [MyStrings.noRouteFound.tr]);
         }
       } else {
@@ -47,22 +47,22 @@ class ShuttleController extends GetxController {
     }
   }
 
-  void selectRoute(MatchedRoute route) {
-    selectedRoute = route;
+  void selectMatch(ShuttleMatch match) {
+    selectedMatch = match;
     update();
   }
   
   Future<void> bookShuttle(int numberOfPassenger) async {
-    if (selectedRoute == null || shuttleRouteModel == null) return;
+    if (selectedMatch == null || shuttleRouteModel == null) return;
 
     isLoading = true;
     update();
 
     try {
       ResponseModel responseModel = await shuttleRepo.createRide(
-        routeId: selectedRoute!.id!,
-        startStopId: shuttleRouteModel!.startStop!.id!,
-        endStopId: shuttleRouteModel!.endStop!.id!,
+        routeId: selectedMatch!.route!.id!,
+        startStopId: selectedMatch!.startStop!.id!,
+        endStopId: selectedMatch!.endStop!.id!,
         numberOfPassenger: numberOfPassenger,
       );
 
@@ -84,7 +84,7 @@ class ShuttleController extends GetxController {
 
   void clearData() {
     shuttleRouteModel = null;
-    selectedRoute = null;
+    selectedMatch = null;
     update();
   }
 }

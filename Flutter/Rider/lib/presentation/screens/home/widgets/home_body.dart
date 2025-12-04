@@ -151,7 +151,7 @@ class _HomeBodyState extends State<HomeBody> {
         ] else ...[
            // Shuttle specific action button could go here
            GetBuilder<ShuttleController>(builder: (shuttleController) {
-             return shuttleController.selectedRoute != null ? 
+             return shuttleController.selectedMatch != null ? 
               Container(
                 width: double.infinity,
                 child: ElevatedButton(

@@ -15,9 +15,19 @@ use App\Http\Controllers\Api\ShuttleController;
 */
 use App\Http\Controllers\Api\ShuttleController;
 
-Route::prefix('shuttle')->group(function () {
-    Route::get('/routes', [ShuttleController::class, 'index']);
-    Route::post('/match-route', [ShuttleController::class, 'matchRoute']);
+Route::prefix('shuttle')->middleware(['auth:sanctum', 'token.permission:auth_token'])->group(function () {
+    Route::get('routes', [ShuttleController::class, 'index']);
+    Route::post('match-route', [ShuttleController::class, 'matchRoute']);
+    Route::post('create', [ShuttleController::class, 'create']);
+});
+
+// Driver Shuttle Routes
+Route::namespace('Api\Driver')->prefix('driver/shuttle')->middleware(['auth:sanctum', 'token.permission:driver_token'])->group(function () {
+    Route::get('routes', 'ShuttleDriverController@listRoutes');
+    Route::post('start', 'ShuttleDriverController@startTrip');
+    Route::post('arrive', 'ShuttleDriverController@arriveAtStop');
+    Route::post('depart', 'ShuttleDriverController@departStop');
+    Route::post('live-location', 'ShuttleDriverController@liveLocation');
 });
 Route::namespace("Api")->group(function () {
     Route::controller('AppController')->group(function () {
@@ -245,9 +255,3 @@ Route::namespace('Api\Driver')->prefix('driver')->group(function () {
     });
 });
 
-Route::prefix('shuttle')->group(function () {
-    Route::get('stops', [ShuttleController::class, 'stops']);
-    Route::get('routes', [ShuttleController::class, 'routes']);
-    Route::post('match-route', [ShuttleController::class, 'matchRoute']);
-    Route::post('create', [ShuttleController::class, 'create']);
-});
