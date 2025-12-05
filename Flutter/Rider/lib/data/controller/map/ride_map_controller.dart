@@ -257,7 +257,7 @@ class RideMapController extends GetxController with GetSingleTickerProviderState
                   driverIcon!,
                   width: 30,
                   height: 45,
-                  bitmapScaling: MapBitmapScaling.auto,
+                  // bitmapScaling: MapBitmapScaling.auto,
                 ),
           infoWindow: InfoWindow(title: driverAddress, onTap: () {}),
           onTap: () async {
@@ -280,7 +280,7 @@ class RideMapController extends GetxController with GetSingleTickerProviderState
                 pickupIcon!,
                 height: 45,
                 width: 45,
-                bitmapScaling: MapBitmapScaling.auto,
+                // bitmapScaling: MapBitmapScaling.auto,
               ),
         onTap: () async {
           mapController?.animateCamera(
@@ -306,7 +306,7 @@ class RideMapController extends GetxController with GetSingleTickerProviderState
                 destinationIcon!,
                 height: 45,
                 width: 45,
-                bitmapScaling: MapBitmapScaling.auto,
+                // bitmapScaling: MapBitmapScaling.auto,
               ),
         onTap: () async {
           mapController?.animateCamera(

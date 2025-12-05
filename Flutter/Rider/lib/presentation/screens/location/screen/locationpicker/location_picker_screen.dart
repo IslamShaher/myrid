@@ -186,7 +186,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         },
                         onCameraIdle: () => _loadWidgetMarker(controller),
                         polylines: Set<Polyline>.of(controller.polylines.values),
-                        style: googleMapLightStyleJson,
+                        // style: googleMapLightStyleJson,
                       ),
                     ),
                   ],
