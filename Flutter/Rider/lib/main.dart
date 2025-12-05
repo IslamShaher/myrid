@@ -17,7 +17,6 @@ import 'package:toastification/toastification.dart';
 import 'core/di_service/di_services.dart' as di_service;
 import 'data/services/api_client.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 
 //APP ENTRY POINT
 Future<void> main() async {
@@ -54,15 +53,7 @@ Future<void> main() async {
   RunningRideService.instance.setIsRunning(false);
 
   tz.initializeTimeZones();
-  if (!kIsWeb) {
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        GoogleMapsFlutterAndroid().useAndroidViewSurface = true;
-      }
-    } catch (e) {
-      printX('Map warmup failed: $e');
-    }
-  }
+  
   // Launch the main application with loaded languages
   runApp(OvoApp(languages: languages));
 }

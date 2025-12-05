@@ -257,7 +257,7 @@ class RideMapController extends GetxController with GetSingleTickerProviderState
                   driverIcon!,
                   width: 30,
                   height: 45,
-                  // bitmapScaling: MapBitmapScaling.auto,
+                  bitmapScaling: MapBitmapScaling.auto,
                 ),
           infoWindow: InfoWindow(title: driverAddress, onTap: () {}),
           onTap: () async {

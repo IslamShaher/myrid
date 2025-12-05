@@ -66,15 +66,15 @@ class ShuttleController extends Controller
 
         // 🔍 Find ALL nearby start stops
         $startStops = Stop::selectRaw("*, $haversine AS distance", [$startLat, $startLng, $startLat])
-            ->having('distance', '<=', $radius)
-            ->orderBy('distance')
-            ->get();
+        ->having('distance', '<=', $radius)
+        ->orderBy('distance')
+        ->get();
 
         // 🔍 Find ALL nearby end stops
         $endStops = Stop::selectRaw("*, $haversine AS distance", [$endLat, $endLng, $endLat])
-            ->having('distance', '<=', $radius)
-            ->orderBy('distance')
-            ->get();
+        ->having('distance', '<=', $radius)
+        ->orderBy('distance')
+        ->get();
 
         if ($startStops->isEmpty() || $endStops->isEmpty()) {
             return response()->json([

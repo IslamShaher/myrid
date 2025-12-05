@@ -80,7 +80,7 @@ class _EditLocationPickerScreenState extends State<EditLocationPickerScreen> {
                       child: Stack(
                         children: [
                           GoogleMap(
-                            // style: googleMapLightStyleJson,
+                            style: googleMapLightStyleJson,
                             myLocationEnabled: true,
                             myLocationButtonEnabled: false,
                             initialCameraPosition: CameraPosition(

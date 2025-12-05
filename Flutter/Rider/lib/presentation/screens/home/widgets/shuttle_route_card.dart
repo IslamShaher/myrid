@@ -105,7 +105,7 @@ class ShuttleRouteCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "To: ${match.endStop?.name}",
-                    style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
+                  style: regularDefault.copyWith(color: MyColor.getBodyTextColor()),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
