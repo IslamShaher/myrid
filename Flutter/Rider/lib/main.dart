@@ -14,6 +14,7 @@ import 'package:ovorideuser/core/route/route.dart';
 import 'package:ovorideuser/core/utils/messages.dart';
 import 'package:ovorideuser/data/controller/localization/localization_controller.dart';
 import 'package:toastification/toastification.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'core/di_service/di_services.dart' as di_service;
 import 'data/services/api_client.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -48,6 +49,12 @@ Future<void> main() async {
 
   // Override HTTP settings (e.g., SSL certificate handling)
   // HttpOverrides.global = MyHttpOverrides();
+
+  try {
+      GoogleMapsFlutterAndroid().useAndroidViewSurface = true;
+  } catch (e) {
+      printX("GoogleMapsFlutterAndroid init error: $e");
+  }
 
   // Set running ride status to false at app launch
   RunningRideService.instance.setIsRunning(false);

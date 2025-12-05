@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:ovoride_driver/core/route/route.dart';
 import 'package:ovoride_driver/core/utils/messages.dart';
 import 'package:ovoride_driver/data/controller/localization/localization_controller.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:ovoride_driver/core/di_service/di_services.dart' as di_service;
 import 'package:ovoride_driver/presentation/screens/dashboard/forground_task_widget.dart';
 import 'package:ovoride_driver/data/services/forground_location_service.dart';
@@ -38,6 +39,12 @@ Future<void> main() async {
 
   // Initialize audio utilities (e.g., background music, sound effects)
   AudioUtils();
+
+  try {
+      GoogleMapsFlutterAndroid().useAndroidViewSurface = true;
+  } catch (e) {
+      printX("GoogleMapsFlutterAndroid init error: $e");
+  }
 
   try {
     // Initialize push notification service and handle interaction messages
