@@ -144,7 +144,7 @@ class RouteHelper {
 
   static const String myReviewScreen = '/my_review_screen';
 
-  List<GetPage> routes = [
+  static List<GetPage> routes = [
     GetPage(name: splashScreen, page: () => const SplashScreen()),
 
     GetPage(name: onboardScreen, page: () => const OnBoardIntroScreen()),
