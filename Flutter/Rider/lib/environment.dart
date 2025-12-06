@@ -15,7 +15,7 @@ class Environment {
 
   //MAP CONFIG
   static const bool addressPickerFromGoogleMapApi = true; //If true, use Google Map API for formate address picker from lat , long, else use free service reverse geocode
-  static const String mapKey = "Enter Your Map Api Key"; // Enter Your Map Api Key
+  static const String mapKey = "AIzaSyDu6uwuGifq_WH27w4qTLiXq4yKFmd6Ar4"; // Enter Your Map Api Key
   static const double mapDefaultZoom = 16;
   static const String devToken = "ovoride-dev-123";
 }

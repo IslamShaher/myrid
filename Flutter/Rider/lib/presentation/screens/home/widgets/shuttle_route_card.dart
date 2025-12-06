@@ -30,7 +30,7 @@ class ShuttleRouteCard extends StatelessWidget {
         padding: EdgeInsets.all(Dimensions.space15),
         decoration: BoxDecoration(
           color: controller.selectedMatch?.route?.id == match.route?.id && controller.selectedMatch?.startStop?.id == match.startStop?.id
-              ? MyColor.primaryColor.withValues(alpha: 0.1)
+              ? MyColor.primaryColor.withOpacity(0.1)
               : MyColor.colorWhite,
           borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
           border: Border.all(
@@ -39,7 +39,7 @@ class ShuttleRouteCard extends StatelessWidget {
                 : MyColor.borderColor,
             width: 1,
           ),
-          boxShadow: MyUtils.getCardShadow(),
+          boxShadow: ShuttleCardUtils.getCardShadow(),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +58,7 @@ class ShuttleRouteCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: Dimensions.space10, vertical: Dimensions.space5),
                   decoration: BoxDecoration(
-                    color: MyColor.primaryColor.withValues(alpha: 0.1),
+                    color: MyColor.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(Dimensions.defaultRadius),
                   ),
                   child: Text(
@@ -118,11 +118,11 @@ class ShuttleRouteCard extends StatelessWidget {
   }
 }
 
-class MyUtils {
+class ShuttleCardUtils {
   static List<BoxShadow> getCardShadow() {
     return [
       BoxShadow(
-        color: MyColor.getShadowColor().withValues(alpha: 0.05),
+        color: MyColor.getShadowColor().withOpacity(0.05),
         spreadRadius: 1,
         blurRadius: 10,
         offset: const Offset(0, 1),

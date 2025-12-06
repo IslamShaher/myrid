@@ -323,24 +323,32 @@ class SelectLocationController extends GetxController {
 
   /// Animate the map camera to a new position
   void animateMapCameraPosition({bool isFromEdit = false}) {
-    if (isFromEdit) {
-      editMapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(selectedLatitude, selectedLongitude),
-            zoom: 18,
-          ),
-        ),
-      );
-    } else {
-      mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(selectedLatitude, selectedLongitude),
-            zoom: 18,
-          ),
-        ),
-      );
+    try {
+      if (isFromEdit) {
+        if (editMapController != null) {
+          editMapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: LatLng(selectedLatitude, selectedLongitude),
+                zoom: 18,
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mapController != null) {
+          mapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: LatLng(selectedLatitude, selectedLongitude),
+                zoom: 18,
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      printX("Error animating camera: ${e.toString()}");
     }
   }
 
@@ -422,14 +430,16 @@ class SelectLocationController extends GetxController {
       changeCurrentLatLongBasedOnCameraMove(lat, lng);
 
       // Animate camera to the new position
-      mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(lat, lng),
-            zoom: 15,
+      if (mapController != null) {
+        mapController?.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(lat, lng),
+              zoom: 15,
+            ),
           ),
-        ),
-      );
+        );
+      }
 
       // Clear predictions and update UI
       allPredictions = [];
@@ -501,7 +511,9 @@ class SelectLocationController extends GetxController {
     if (coords.isEmpty) return;
 
     final LatLngBounds bounds = _createLatLngBounds(coords, bottomSheetExtent);
-    mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+    if (mapController != null) {
+      mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+    }
   }
 
   LatLngBounds _createLatLngBounds(List<LatLng> coords, double bottomSheetExtent) {
@@ -539,12 +551,14 @@ class SelectLocationController extends GetxController {
     try {
       final bounds = _calculateBounds(polylinePoints);
 
+    if (mapController != null) {
       await mapController?.animateCamera(
         CameraUpdate.newLatLngBounds(
           bounds,
           50.0, // padding
         ),
       );
+    }
     } catch (e) {
       printE(e);
     }

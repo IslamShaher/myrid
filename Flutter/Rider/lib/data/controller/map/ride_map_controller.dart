@@ -306,7 +306,7 @@ class RideMapController extends GetxController with GetSingleTickerProviderState
                 destinationIcon!,
                 height: 45,
                 width: 45,
-                // bitmapScaling: MapBitmapScaling.auto,
+                bitmapScaling: MapBitmapScaling.auto,
               ),
         onTap: () async {
           mapController?.animateCamera(

@@ -166,16 +166,18 @@ class _HomeBodyState extends State<HomeBody> {
                       ),
                       content: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: TextField(
-                          controller: passengerController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: "Enter number of passengers",
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        child: Material(
+                            child: TextField(
+                            controller: passengerController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                                hintText: "Enter number of passengers",
+                                border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          ),
+                            ),
                         ),
                       ),
                       textConfirm: "Book Shuttle",
