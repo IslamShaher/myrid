@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\ShuttleRoute;
 use App\Models\Stop;
 use App\Models\RouteSchedule;
+use App\Models\Service;
 use App\Services\GoogleMapsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -305,7 +306,10 @@ class ShuttleController extends Controller
             $ride = new \App\Models\Ride();
             $ride->uid                   = getTrx(10);
             $ride->user_id               = auth()->id();
-            $ride->service_id            = 1; 
+            
+            $shuttleService = Service::where('name', 'LIKE', '%Shuttle%')->first();
+            $ride->service_id            = $shuttleService ? $shuttleService->id : 1;
+             
             $ride->route_id              = $route->id;
             $ride->start_stop_id         = $startStop->id;
             $ride->end_stop_id           = $endStop->id;
