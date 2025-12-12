@@ -150,7 +150,11 @@ class ShuttleController extends Controller
                 $currentTime = Carbon::now()->format('H:i:s');
                 $nextSchedule = $route->schedules->where('start_time', '>=', $currentTime)->first();
                 
-                // If no schedule for today, maybe show first schedule of tomorrow or just null
+                // If no schedule for today, take the first schedule of the day (treating it as tomorrow)
+                if (!$nextSchedule) {
+                    $nextSchedule = $route->schedules->first();
+                }
+
                 $nextScheduleTime = $nextSchedule ? $nextSchedule->start_time : null;
 
                 $matchedRoutes[] = [
@@ -299,6 +303,14 @@ class ShuttleController extends Controller
                 ->where('start_time', '>=', $currentTime)
                 ->orderBy('start_time')
                 ->first();
+
+            // Fallback to first schedule if none remaining today
+            if (!$schedule) {
+                $schedule = RouteSchedule::where('route_id', $route->id)
+                    ->where('status', 1)
+                    ->orderBy('start_time')
+                    ->first();
+            }
             
             $startTime = $schedule ? $schedule->start_time : Carbon::now()->format('H:i:s');
 
