@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:ovorideuser/core/route/route.dart';
 import 'package:ovorideuser/core/utils/my_icons.dart';
 import 'package:ovorideuser/data/controller/home/home_controller.dart';
+import 'package:ovorideuser/data/controller/shuttle/shuttle_controller.dart';
 import 'package:ovorideuser/presentation/components/card/inner_shadow_container.dart';
 import 'package:ovorideuser/presentation/components/image/custom_svg_picture.dart';
 
@@ -57,7 +58,16 @@ class _LocationPickUpHomeWidgetState extends State<LocationPickUpHomeWidget> {
               widget.controller.updateIsServiceShake(false);
               Get.toNamed(RouteHelper.locationPickUpScreen, arguments: [1])?.then((v) {
                 if (widget.controller.selectedLocations.length > 1) {
-                  widget.controller.getRideFare();
+                  if (widget.controller.isShuttleMode) {
+                    Get.find<ShuttleController>().matchRoute(
+                      startLat: widget.controller.selectedLocations[0].latitude,
+                      startLng: widget.controller.selectedLocations[0].longitude,
+                      endLat: widget.controller.selectedLocations[1].latitude,
+                      endLng: widget.controller.selectedLocations[1].longitude,
+                    );
+                  } else {
+                    widget.controller.getRideFare();
+                  }
                 }
               });
             },

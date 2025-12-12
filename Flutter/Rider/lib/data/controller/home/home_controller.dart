@@ -54,6 +54,29 @@ class HomeController extends GetxController {
   RideModel runningRide = RideModel(id: "-1");
   bool isKycVerified = true;
   bool isKycPending = false;
+  bool isShuttleMode = false;
+
+  void toggleShuttleMode(bool value) {
+    if (isShuttleMode == value) return;
+    isShuttleMode = value;
+    update();
+
+    if (isShuttleMode) {
+      if (selectedLocations.length > 1) {
+        ShuttleController shuttleController = Get.find();
+        shuttleController.matchRoute(
+          startLat: selectedLocations[0].latitude,
+          startLng: selectedLocations[0].longitude,
+          endLat: selectedLocations[1].latitude,
+          endLng: selectedLocations[1].longitude,
+        );
+      }
+    } else {
+      if (selectedLocations.length > 1) {
+        getRideFare();
+      }
+    }
+  }
 
   void updatePassenger(bool isIncrement) {
     if (isIncrement) {
@@ -114,6 +137,13 @@ class HomeController extends GetxController {
         DashBoardResponseModel model = DashBoardResponseModel.fromJson((responseModel.responseJson));
         if (model.status == MyStrings.success && model.data != null) {
           appServicesList = model.data?.services ?? [];
+          if (appServicesList.isNotEmpty && selectedService.id == '-99') {
+            try {
+              selectService(appServicesList[0]);
+            } catch (e) {
+              printX(e);
+            }
+          }
           paymentMethodList = model.data?.paymentMethod ?? [];
           paymentMethodList.insertAll(0, MyUtils.getDefaultPaymentMethod());
           user = model.data?.userInfo ?? GlobalUser(id: '-1');
@@ -217,6 +247,11 @@ class HomeController extends GetxController {
   RideFareModel rideFare = RideFareModel();
   Future<void> getRideFare() async {
     try {
+      if (isShuttleMode) return;
+      
+      if (selectedService.id == '-99') {
+        return;
+      }
       isPriceLocked = true;
       update();
       ResponseModel responseModel = await homeRepo.getRideFare(

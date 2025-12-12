@@ -23,8 +23,6 @@ class HomeBody extends StatefulWidget {
 }
 
 class _HomeBodyState extends State<HomeBody> {
-  bool isShuttleMode = false;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -43,21 +41,19 @@ class _HomeBodyState extends State<HomeBody> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    setState(() {
-                      isShuttleMode = false;
-                    });
+                    widget.controller.toggleShuttleMode(false);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: Dimensions.space10),
                     decoration: BoxDecoration(
-                      color: !isShuttleMode ? MyColor.primaryColor : MyColor.transparentColor,
+                      color: !widget.controller.isShuttleMode ? MyColor.primaryColor : MyColor.transparentColor,
                       borderRadius: BorderRadius.circular(Dimensions.defaultRadius),
                     ),
                     child: Center(
                       child: Text(
                         "Ride",
                         style: boldDefault.copyWith(
-                          color: !isShuttleMode ? MyColor.colorWhite : MyColor.getTextColor(),
+                          color: !widget.controller.isShuttleMode ? MyColor.colorWhite : MyColor.getTextColor(),
                         ),
                       ),
                     ),
@@ -67,21 +63,19 @@ class _HomeBodyState extends State<HomeBody> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    setState(() {
-                      isShuttleMode = true;
-                    });
+                    widget.controller.toggleShuttleMode(true);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: Dimensions.space10),
                     decoration: BoxDecoration(
-                      color: isShuttleMode ? MyColor.primaryColor : MyColor.transparentColor,
+                      color: widget.controller.isShuttleMode ? MyColor.primaryColor : MyColor.transparentColor,
                       borderRadius: BorderRadius.circular(Dimensions.defaultRadius),
                     ),
                     child: Center(
                       child: Text(
                         "Shuttle",
                         style: boldDefault.copyWith(
-                          color: isShuttleMode ? MyColor.colorWhite : MyColor.getTextColor(),
+                          color: widget.controller.isShuttleMode ? MyColor.colorWhite : MyColor.getTextColor(),
                         ),
                       ),
                     ),
@@ -93,7 +87,7 @@ class _HomeBodyState extends State<HomeBody> {
         ),
 
         // SERVICES / SHUTTLE LIST
-        if (isShuttleMode) ...[
+        if (widget.controller.isShuttleMode) ...[
           ShuttleRouteList(),
         ] else ...[
           Column(
@@ -128,7 +122,7 @@ class _HomeBodyState extends State<HomeBody> {
         
         // RIDE FORM (Only show if not shuttle mode or if we want to reuse it for shuttle later)
         // For now, keeping it for both but we might want to hide it for shuttle if the flow is different
-        if (!isShuttleMode) ...[
+        if (!widget.controller.isShuttleMode) ...[
           Container(
             decoration: BoxDecoration(
               color: MyColor.getCardBgColor(),
