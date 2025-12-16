@@ -17,7 +17,7 @@ class ShuttleRoute extends Model
     {
         return $this->belongsToMany(Stop::class, 'route_stops', 'route_id', 'stop_id')
                     ->withPivot('order')
-                    ->orderBy('pivot_order');
+                    ->orderBy('route_stops.order');
     }
 
     public function schedules()

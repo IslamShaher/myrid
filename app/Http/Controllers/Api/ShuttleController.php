@@ -28,7 +28,7 @@ class ShuttleController extends Controller
     public function index()
     {
         $routes = ShuttleRoute::with(['stops' => function ($query) {
-            $query->orderBy('pivot_order');
+            $query->orderBy('route_stops.order');
         }])->get();
 
         return response()->json([
