@@ -157,10 +157,30 @@ class HomeController extends GetxController {
           if (model.data?.runningRide != null && RunningRideService.instance.isRunningShow == false) {
             RunningRideService.instance.setIsRunning(true);
             runningRide = model.data!.runningRide!;
+            
+            // Only show "reached destination" message for ended rides, not running ones
+            String dialogTitle = MyStrings.runningRideAlertTitle.tr;
+            String dialogDescription = '';
+            
+            // Debug: Log the status for troubleshooting
+            printX('Running ride status: ${runningRide.status}, RIDE_RUNNING: ${AppStatus.RIDE_RUNNING}, RIDE_PAYMENT_REQUESTED: ${AppStatus.RIDE_PAYMENT_REQUESTED}');
+            
+            if (runningRide.status == AppStatus.RIDE_PAYMENT_REQUESTED) {
+              // Ride has ended, show destination reached message
+              dialogDescription = MyStrings.runningRideAlertSubTitle;
+            } else if (runningRide.status == AppStatus.RIDE_RUNNING) {
+              // Ride is in progress, show different message
+              dialogTitle = "Ride in Progress";
+              dialogDescription = "Your driver is on the way. Tap to view ride details.";
+            } else {
+              // For other statuses (ACTIVE, etc.), use default
+              dialogDescription = "You have an active ride. Tap to view details.";
+            }
+            
             AppDialog().showRideDetailsDialog(
               Get.context!,
-              title: MyStrings.runningRideAlertTitle.tr,
-              description: MyStrings.runningRideAlertSubTitle,
+              title: dialogTitle,
+              description: dialogDescription,
               barrierDismissible: true,
               onTap: () {
                 Get.toNamed(

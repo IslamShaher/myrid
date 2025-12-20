@@ -7,10 +7,6 @@ import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart'
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
 import 'package:ovorideuser/presentation/screens/ride/shared_ride_screen.dart';
 
-class SharedRideHomeWidget extends StatelessWidget {
-  const SharedRideHomeWidget({super.key});
-
-  @override
 import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
 import 'package:ovorideuser/presentation/screens/ride/shared_ride_active_screen.dart';
 

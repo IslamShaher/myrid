@@ -35,13 +35,18 @@ class SharedRideRepo {
     );
   }
 
-  Future<ResponseModel> updateRideStatus({required String rideId, required String action}) async {
-    return await apiClient.request(
-      url: "${UrlContainer.baseUrl}api/shuttle/update-ride-status",
-      method: Method.postMethod,
       params: {"ride_id": rideId, "action": action},
     );
   }
+
+  Future<ResponseModel> getActiveSharedRide() async {
+    return await apiClient.request(
+        url: "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
+        method: Method.getMethod, // GET
+        params: {}
+    );
+  }
+}
  
   // For creating a NEW ride (Rider 1), we might reuse ShuttleRepo.create or make a param here.
   // But wait, the standard create uses Route ID.
