@@ -11,81 +11,86 @@ class SharedRideHomeWidget extends StatelessWidget {
   const SharedRideHomeWidget({super.key});
 
   @override
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
+import 'package:ovorideuser/presentation/screens/ride/shared_ride_active_screen.dart';
+
+class SharedRideHomeWidget extends StatelessWidget {
+  const SharedRideHomeWidget({super.key});
+
+  @override
   Widget build(BuildContext context) {
-    // This widget should check if there is an active shared ride.
-    // For now, let's just make it a button to "Find Shared Ride" 
-    // AND if controller has active ride, show status.
-    
-    // We need to inject SharedRideController somewhere globally or access it here.
-    // Let's assume it's put in home screen.
-    
     return GetBuilder<SharedRideController>(
       builder: (controller) {
-        // If has active ride (mocked check for now, or check controller state)
-        bool hasActiveRide = false; // controller.hasActiveRide; 
+        bool hasActived = controller.currentRide != null;
         
         return Container(
            margin: EdgeInsets.symmetric(vertical: Dimensions.space10),
            padding: EdgeInsets.all(Dimensions.space15),
            decoration: BoxDecoration(
-             color: MyColor.primaryColor.withOpacity(0.1),
+             color: MyColor.getCardBgColor(),
              borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
-             border: Border.all(color: MyColor.primaryColor, width: 0.5)
+             boxShadow: MyColor.getCardShadow(),
+             border: Border.all(color: MyColor.primaryColor.withOpacity(0.3), width: 1)
            ),
            child: Column(
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
-               Row(
-                 children: [
-                   Icon(Icons.people_outline, color: MyColor.primaryColor),
-                   SizedBox(width: 10),
-                   Expanded(
-                     child: Text(
-                       hasActiveRide ? "Active Shared Ride" : "Shared Rides (2 Riders)",
-                       style: boldDefault.copyWith(color: MyColor.primaryColor),
-                     ),
-                   ),
-                   if(hasActiveRide)
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: MyColor.greenP, borderRadius: BorderRadius.circular(4)),
-                        child: Text("Active", style: regularSmall.copyWith(color: Colors.white)),
-                      )
-                 ],
-               ),
-               spaceDown(Dimensions.space10),
-               if (!hasActiveRide)
+               if (!hasActived) ...[
+                 Row(
+                   children: [
+                     Icon(Icons.directions_car_filled_outlined, color: MyColor.primaryColor),
+                     SizedBox(width: 10),
+                     Text("Shared Rides (2 Riders)", style: boldDefault),
+                   ],
+                 ),
+                 spaceDown(10),
                  InkWell(
-                   onTap: () {
-                     Get.to(() => const SharedRideScreen());
-                   },
+                   onTap: () => Get.to(() => const SharedRideScreen()),
                    child: Container(
                      width: double.infinity,
-                     padding: EdgeInsets.symmetric(vertical: 10),
-                     decoration: BoxDecoration(
-                       color: MyColor.primaryColor,
-                       borderRadius: BorderRadius.circular(8)
-                     ),
+                     padding: EdgeInsets.symmetric(vertical: 12),
+                     decoration: BoxDecoration(color: MyColor.primaryColor, borderRadius: BorderRadius.circular(8)),
                      child: Center(child: Text("Find / Create Shared Ride", style: boldDefault.copyWith(color: Colors.white))),
                    ),
                  )
-               else
-                 Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
+               ] else ...[
+                 // Active/Pending Ride Card
+                 Row(
+                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                    children: [
-                     Text("Your ride is scheduled/active.", style: regularDefault),
-                     spaceDown(5),
-                     Text("Rider 2: Waiting/Joined", style: regularSmall),
-                     spaceDown(10),
-                     InkWell(
-                       onTap: () {
-                           // Go to active ride details
-                           // Get.to(() => SharedRideActiveScreen()); // TODO
-                       },
-                       child: Text("View Details >", style: boldDefault.copyWith(color: MyColor.primaryColor)),
+                     Text("Your Shared Ride", style: boldLarge.copyWith(color: MyColor.primaryColor)),
+                     Container(
+                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                       decoration: BoxDecoration(color: MyColor.greenP, borderRadius: BorderRadius.circular(4)),
+                       child: Text("Active", style: regularSmall.copyWith(color: Colors.white)),
                      )
                    ],
+                 ),
+                 spaceDown(10),
+                 // Map Preview
+                 if (controller.currentRide?.pickupLat != null)
+                   SharedRideMapWidget(
+                      startLat1: controller.currentRide!.pickupLat!, 
+                      startLng1: controller.currentRide!.pickupLng!, 
+                      endLat1: controller.currentRide!.destLat!, 
+                      endLng1: controller.currentRide!.destLng!, 
+                      // For pending ride, R2 might be null. Show what we have.
+                      // If R1 is me, R2 is unknown.
+                      // Map Widget expects 4 points. We can duplicate or hide R2.
+                      // Let's just show single route if solo.
+                      startLat2: controller.currentRide!.pickupLat!, 
+                      startLng2: controller.currentRide!.pickupLng!, 
+                      endLat2: controller.currentRide!.destLat!, 
+                      endLng2: controller.currentRide!.destLng! 
+                   ),
+                 spaceDown(10),
+                 Text("${controller.currentRide?.pickupLocation} -> ${controller.currentRide?.destination}", maxLines: 1),
+                 spaceDown(10),
+                 InkWell(
+                   onTap: () => Get.to(() => SharedRideActiveScreen(rideId: controller.currentRide!.id.toString())),
+                   child: Text("View Details >", style: boldDefault.copyWith(color: MyColor.primaryColor)),
                  )
+               ]
              ],
            ),
         );

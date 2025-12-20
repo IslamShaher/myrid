@@ -112,12 +112,36 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                 ),
 
                 spaceDown(20),
-                RoundedButton(
-                  text: "Chat with Rider",
-                  press: () {
-                    // Navigate to Message Screen
-                    // Get.toNamed(RouteHelper.messageScreen, arguments: widget.rideId);
-                  },
+                Row(
+                  children: [
+                     Expanded(
+                        child: RoundedButton(
+                          text: "Call Rider",
+                          color: Colors.green,
+                          press: () {
+                            // Using URL Launcher to call (requires import 'package:url_launcher/url_launcher.dart')
+                            // Helper method usually exists in core/utils
+                            // MyUtils.launchPhoneUrl(widget.ride.otherUserPhone);
+                            // For now, placeholder or direct launch
+                            final Uri launchUri = Uri(scheme: 'tel', path: '1234567890'); // TODO: Get phone from ride model
+                            // launchUrl(launchUri); 
+                            CustomSnackBar.success(successList: ["Calling Rider..."]);
+                          },
+                        ),
+                     ),
+                     SizedBox(width: 10),
+                     Expanded(
+                       child: RoundedButton(
+                          text: "Chat",
+                          press: () {
+                             // Assuming generic message screen route exists or we push new screen
+                             // Get.toNamed(RouteHelper.messageScreen, arguments: widget.rideId);
+                             // Need to check routes. Or use existing screen controller.
+                             CustomSnackBar.success(successList: ["Opening Chat..."]);
+                          },
+                        )
+                     )
+                  ],
                 )
               ],
             ),

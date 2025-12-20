@@ -22,6 +22,8 @@ class SharedMatch {
   double? totalOverhead;
   double? r1Solo;
   double? r2Solo;
+  double? r1Fare;
+  double? r2Fare;
   List<String>? sequence;
 
   SharedMatch(
@@ -31,6 +33,8 @@ class SharedMatch {
       this.totalOverhead,
       this.r1Solo,
       this.r2Solo,
+      this.r1Fare,
+      this.r2Fare,
       this.sequence});
 
   SharedMatch.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class SharedMatch {
     totalOverhead = double.tryParse(json['total_overhead'].toString());
     r1Solo = double.tryParse(json['r1_solo'].toString());
     r2Solo = double.tryParse(json['r2_solo'].toString());
+    r1Fare = double.tryParse(json['r1_fare'].toString());
+    r2Fare = double.tryParse(json['r2_fare'].toString());
     sequence = json['sequence'].cast<String>();
   }
 }
@@ -51,6 +57,10 @@ class RideInfo {
   String? distance; // API returns km/m string or value?
   String? duration;
   String? amount;
+  double? pickupLat;
+  double? pickupLng;
+  double? destLat;
+  double? destLng;
 
   RideInfo(
       {this.id,
@@ -58,7 +68,11 @@ class RideInfo {
       this.destination,
       this.distance,
       this.duration,
-      this.amount});
+      this.amount,
+      this.pickupLat,
+      this.pickupLng,
+      this.destLat,
+      this.destLng});
 
   RideInfo.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -67,5 +81,9 @@ class RideInfo {
     distance = json['distance'].toString();
     duration = json['duration'].toString();
     amount = json['amount'].toString();
+    pickupLat = double.tryParse(json['pickup_latitude'].toString());
+    pickupLng = double.tryParse(json['pickup_longitude'].toString());
+    destLat = double.tryParse(json['destination_latitude'].toString());
+    destLng = double.tryParse(json['destination_longitude'].toString());
   }
 }

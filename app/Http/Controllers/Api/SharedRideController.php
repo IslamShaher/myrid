@@ -148,36 +148,73 @@ class SharedRideController extends Controller
         // For prototype, we might use Haversine/Speed constant if API quota is concern, 
         // but user asked for "check shortest ride time".
         
+        $pricePerKm = 2.00; // Configurable
+        
         foreach ($permutations as $perm) {
             // Calculate total duration of this sequence
-            // Segments: 0->1, 1->2, 2->3
             $dur = 0;
             $coords = $perm['coords'];
             
-            // To reduce API calls, one could do a Matrix 4x4 once? 
-            // But let's assume we do sequential checks or simple addition of segments.
-            // We'll calculate segment distances using Haversine and avg speed (e.g. 30km/h) 
-            // OR use google maps if strictly required. 
-            // Given "GoogleMapsService" usually does 1-to-1, let's use it carefully.
+            // Segment Calculations with Fare Logic
+            $seq = $perm['seq'];
+            $activeRiders = []; // Track who is in the car
             
-            // Actually, getDistanceMatrix can take multiple origins/destinations.
-            // But here we need specific path.
+            $r1Cost = 0;
+            $r2Cost = 0;
+            $totalSeqDuration = 0;
+
+            // Initialize riders at start point
+            // The loop iterates segments between points.
+            // Point 0 (Start of ride) -> Add Rider
+            // Point 0 -> Point 1 is Segment 1.
             
-            // Let's implement a 'calculateRouteDuration' helper that sums segments.
-            $seg1 = $this->getSegmentDuration($coords[0], $coords[1]);
-            $seg2 = $this->getSegmentDuration($coords[1], $coords[2]);
-            $seg3 = $this->getSegmentDuration($coords[2], $coords[3]);
+            // We need to know who is in the car for each segment.
+            // Logic:
+            // 1. Process point i action (Pickup/Dropoff) -> Update activeRiders
+            // 2. BUT activeRiders applies to the segment AFTER the point? 
+            //    No, for "S1->S2", S1 is pickup. So R1 is in car for S1->S2.
             
-            $totalSeqDuration = $seg1 + $seg2 + $seg3;
+            // Let's track existing riders before segment starts.
             
-            // Calculate individual times in this sequence
-            // Rider 1 Start/End indices
-            $idxS1 = array_search('S1', $perm['seq']);
-            $idxE1 = array_search('E1', $perm['seq']);
+            for ($i = 0; $i < 3; $i++) {
+                $pStart = $seq[$i];   // Code e.g. 'S1'
+                $pEnd   = $seq[$i+1]; // Code e.g. 'S2'
+                
+                // Update riders based on pStart
+                if (str_contains($pStart, 'S')) { // Pickup
+                     $riderIdx = str_contains($pStart, '1') ? 1 : 2;
+                     if (!in_array($riderIdx, $activeRiders)) $activeRiders[] = $riderIdx;
+                }
+                if (str_contains($pStart, 'E')) { // Dropoff
+                     $riderIdx = str_contains($pStart, '1') ? 1 : 2;
+                     $activeRiders = array_diff($activeRiders, [$riderIdx]);
+                }
+                
+                // Calculate Segment Distance/Duration
+                $segDur = $this->getSegmentDuration($coords[$i], $coords[$i+1]); // seconds?
+                // Convert duration to distance approx (since getSegmentDuration returns seconds-based-value in current mock)
+                // Current mock: Haversine * 120 (2 min/km). So Dist = Dur / 120.
+                $segDistKm = $segDur / 120.0;
+                $segPrice = $segDistKm * $pricePerKm;
+                
+                $totalSeqDuration += $segDur;
+                
+                // Distribute Cost
+                $count = count($activeRiders);
+                if ($count > 0) {
+                    $costPerRider = $segPrice / $count;
+                    if (in_array(1, $activeRiders)) $r1Cost += $costPerRider;
+                    if (in_array(2, $activeRiders)) $r2Cost += $costPerRider;
+                }
+            }
+            
+            // Calculate individual times for overhead check
+            $idxS1 = array_search('S1', $seq);
+            $idxE1 = array_search('E1', $seq);
             $r1DurationInRide = $this->getSubSequenceDuration($coords, $idxS1, $idxE1);
 
-            $idxS2 = array_search('S2', $perm['seq']);
-            $idxE2 = array_search('E2', $perm['seq']);
+            $idxS2 = array_search('S2', $seq);
+            $idxE2 = array_search('E2', $seq);
             $r2DurationInRide = $this->getSubSequenceDuration($coords, $idxS2, $idxE2);
 
             $overhead1 = $r1DurationInRide - $r1SoloDuration;
@@ -186,21 +223,31 @@ class SharedRideController extends Controller
 
             if ($totalSeqDuration < $minTotalDuration) {
                 $minTotalDuration = $totalSeqDuration;
-                $bestSequence = $perm['seq'];
+                $bestSequence = $seq;
                 $bestOverhead = [
                     'r1_overhead' => $overhead1,
                     'r2_overhead' => $overhead2,
                     'total_overhead' => $totalOverhead,
-                    'sequence' => $perm['seq'],
+                    'sequence' => $seq,
                     'r1_solo' => $r1SoloDuration,
                     'r2_solo' => $r2SoloDuration,
                     'r1_shared' => $r1DurationInRide,
                     'r2_shared' => $r2DurationInRide,
+                    'r1_fare' => round($r1Cost, 2),
+                    'r2_fare' => round($r2Cost, 2),
                 ];
             }
         }
         
-        return array_merge(['ride' => $ride], $bestOverhead);
+        // Add Base Fare to both? Or split base fare? 
+        // Usually base fare is per rider.
+        $baseFare = 5.00;
+        if(isset($bestOverhead)) {
+            $bestOverhead['r1_fare'] += $baseFare;
+            $bestOverhead['r2_fare'] += $baseFare;
+        }
+        
+        return array_merge(['ride' => $ride], $bestOverhead ?? []);
     }
 
     private function getSegmentDuration($p1, $p2) {

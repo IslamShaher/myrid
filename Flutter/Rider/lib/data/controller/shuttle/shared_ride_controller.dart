@@ -8,11 +8,49 @@ import 'package:ovorideuser/presentation/screens/ride/shared_ride_active_screen.
 
 class SharedRideController extends GetxController {
   SharedRideRepo sharedRideRepo;
+  
+  // Text Controllers for Inputs (Moved here for easier access)
+  final TextEditingController startLatController = TextEditingController();
+  final TextEditingController startLngController = TextEditingController();
+  final TextEditingController endLatController = TextEditingController();
+  final TextEditingController endLngController = TextEditingController();
+
   SharedRideController({required this.sharedRideRepo});
 
   bool isLoading = false;
   List<SharedMatch> matches = [];
   bool searched = false;
+  
+  // Pending/Active Ride Storage
+  RideInfo? currentRide;
+
+  @override
+  void onInit() {
+    super.onInit();
+    checkPendingRide();
+  }
+
+  Future<void> checkPendingRide() async {
+    // We need an endpoint to "get active shared ride" if any.
+    // For now, let's assume valid "current ride" is fetched via a specific endpoint 
+    // OR we rely on Home API if it returns it.
+    // Let's add a method to Repo to fetch "active-shared-ride".
+    
+    // Quick fix: We can try to use standard RideRepo "active ride" if it distinguishes types,
+    // but better to have dedicated one.
+    // Creating one now...
+    try {
+       // Mocking the call or if we implemented `matchSharedRide` to return current ride?
+       // Let's implement `getActiveSharedRide` in Repo.
+       ResponseModel response = await sharedRideRepo.getActiveSharedRide();
+       if(response.statusCode == 200 && response.responseJson['data'] != null) {
+          currentRide = RideInfo.fromJson(response.responseJson['data']);
+          update();
+       }
+    } catch(e) {
+      print(e);
+    }
+  }
 
   Future<void> matchSharedRide({
     required double startLat,

@@ -75,6 +75,10 @@ class SharedRideRepo {
         url: "${UrlContainer.baseUrl}api/shuttle/create-shared-ride", 
         method: Method.postMethod,
         params: params
-      );
+  Future<ResponseModel> getActiveSharedRide() async {
+    return await apiClient.request(
+        url: "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
+        method: Method.getMethod, // GET
+        params: {}
+    );
   }
-}

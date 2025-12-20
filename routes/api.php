@@ -25,6 +25,7 @@ Route::prefix('shuttle')->middleware(['auth:sanctum', 'token.permission:auth_tok
     Route::post('create-shared-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'createSharedRide']);
     Route::post('join-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'joinRide']);
     Route::post('update-ride-status', [\App\Http\Controllers\Api\SharedRideController::class, 'updateRideStatus']);
+    Route::get('active-shared-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'activeSharedRide']);
 });
 
 // Driver Shuttle Routes

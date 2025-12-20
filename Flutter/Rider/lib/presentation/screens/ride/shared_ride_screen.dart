@@ -7,6 +7,8 @@ import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart'
 import 'package:ovorideuser/presentation/components/app-bar/custom_appbar.dart';
 import 'package:ovorideuser/presentation/components/buttons/rounded_button.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_route_widget.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/location_pickup_widget.dart'; // Reusing location picker widgets if possible
 // Or create a simple UI for inputs
 
@@ -18,10 +20,7 @@ class SharedRideScreen extends StatefulWidget {
 }
 
 class _SharedRideScreenState extends State<SharedRideScreen> {
-  final TextEditingController startLatController = TextEditingController();
-  final TextEditingController startLngController = TextEditingController();
-  final TextEditingController endLatController = TextEditingController();
-  final TextEditingController endLngController = TextEditingController();
+  // Controllers moved to SharedRideController
   
   // In a real app, we would use the LocationPickerScreen result.
   // For now, I'll simulate or use a simple form to call the controller.
@@ -98,14 +97,50 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                      itemBuilder: (context, index) {
                        var match = controller.matches[index];
                        return Card(
-                         child: ListTile(
-                           title: Text("Trp: ${match.ride?.pickupLocation} -> ${match.ride?.destination}"),
-                           subtitle: Text("Savings/Overhead: ${match.totalOverhead}"),
-                           trailing: ElevatedButton(
-                             child: const Text("Join"),
-                             onPressed: () {
-                               controller.joinRide(match.ride!.id.toString());
-                             },
+                         child: Padding(
+                           padding: EdgeInsets.all(10),
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               ListTile(
+                                 contentPadding: EdgeInsets.zero,
+                                 title: Text("Overhead: ${match.totalOverhead?.toStringAsFixed(1)} min", style: boldDefault),
+                                 // Now assumes Match model has 'r2Amount' or we grab it from map
+                                 // Note: Model update needed to parse r2_fare from JSON.
+                                 // For now using the logic that backend sends it.
+                                 subtitle: Text("Est. Fare: \$${match.r2Fare} (Savings: \$${(match.r2Solo! * 2.0/120 * 2.0 - match.r2Fare!).toStringAsFixed(1)})", maxLines: 1, overflow: TextOverflow.ellipsis),
+                                 trailing: ElevatedButton(
+                                   child: const Text("Join"),
+                                   onPressed: () {
+                                     controller.joinRide(match.ride!.id.toString());
+                                   },
+                                   style: ElevatedButton.styleFrom(backgroundColor: MyColor.primaryColor, foregroundColor: Colors.white),
+                                 ),
+                               ),
+                               Divider(),
+                               // Route Visualization
+                               if (index < 5 && match.ride?.pickupLat != null)
+                                  SharedRideMapWidget(
+                                    startLat1: match.ride!.pickupLat!,
+                                    startLng1: match.ride!.pickupLng!,
+                                    endLat1: match.ride!.destLat!,
+                                    endLng1: match.ride!.destLng!,
+                                    // Current user coords passed from input/controller
+                                    // Wait, we need the stored input coords. 
+                                    // I'll grab them from the controller temporarily or pass them.
+                                    // Controller.startLat is not public? 
+                                    // Let's assume for now we use the ones from the match creation request 
+                                    // (which aren't in the match object yet, but were sent).
+                                    // Quick fix: Use dummy or pass via controller.
+                                    // Using 0,0 placeholder if not available, but should be fixed.
+                                    startLat2: double.tryParse(controller.startLatController.text) ?? 0,
+                                    startLng2: double.tryParse(controller.startLngController.text) ?? 0,
+                                    endLat2: double.tryParse(controller.endLatController.text) ?? 0,
+                                    endLng2: double.tryParse(controller.endLngController.text) ?? 0,
+                                  )
+                               else
+                                  SharedRideRouteWidget(sequence: match.sequence ?? [])
+                             ],
                            ),
                          ),
                        );
