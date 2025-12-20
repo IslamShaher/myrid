@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ovorideuser/core/utils/my_strings.dart';
 import 'package:ovorideuser/data/model/global/response_model/response_model.dart';
@@ -5,6 +6,7 @@ import 'package:ovorideuser/data/model/shuttle/shared_ride_match_model.dart';
 import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
 import 'package:ovorideuser/presentation/screens/ride/shared_ride_active_screen.dart';
+import 'package:ovorideuser/presentation/screens/ride/ride_details_screen.dart';
 
 class SharedRideController extends GetxController {
   SharedRideRepo sharedRideRepo;

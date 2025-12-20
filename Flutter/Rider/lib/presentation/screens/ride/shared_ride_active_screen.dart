@@ -71,7 +71,7 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                         actions: [TextButton(onPressed: ()=>Get.back(), child: Text("Close"))],
                       ));
                     },
-                    color: MyColor.secondaryColor,
+                    bgColor: MyColor.secondaryColor,
                   ),
                 spaceDown(10),
                 
@@ -107,7 +107,7 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                   press: () {
                      // Image Picker logic
                   },
-                  color: Colors.blueGrey,
+                   bgColor: Colors.blueGrey,
                   textColor: Colors.white,
                 ),
 
@@ -117,7 +117,7 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                      Expanded(
                         child: RoundedButton(
                           text: "Call Rider",
-                          color: Colors.green,
+                          bgColor: Colors.green,
                           press: () {
                             // Using URL Launcher to call (requires import 'package:url_launcher/url_launcher.dart')
                             // Helper method usually exists in core/utils

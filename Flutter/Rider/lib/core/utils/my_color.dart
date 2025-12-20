@@ -202,4 +202,15 @@ class MyColor {
     int colorIndex = index > 10 ? index % 10 : index;
     return symbolPlate[colorIndex];
   }
+
+  static List<BoxShadow> getCardShadow() {
+    return [
+      BoxShadow(
+        color: shadowColor,
+        blurRadius: 10,
+        spreadRadius: 0,
+        offset: const Offset(0, 0),
+      )
+    ];
+  }
 }

@@ -70,4 +70,13 @@ class SharedRideRepo {
         passHeader: true,
       );
   }
+
+  Future<ResponseModel> updateRideStatus({required String rideId, required String action}) async {
+    return await apiClient.request(
+        "${UrlContainer.baseUrl}api/shuttle/ride-status-update", 
+        Method.postMethod,
+        {"ride_id": rideId, "action": action},
+        passHeader: true,
+    );
+  }
 }
