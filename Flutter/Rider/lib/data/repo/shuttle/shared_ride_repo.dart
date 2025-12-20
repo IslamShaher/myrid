@@ -21,43 +21,31 @@ class SharedRideRepo {
     };
 
     return await apiClient.request(
-      url: "${UrlContainer.baseUrl}api/shuttle/match-shared-ride",
-      method: Method.postMethod,
-      params: params,
+      "${UrlContainer.baseUrl}api/shuttle/match-shared-ride",
+      Method.postMethod,
+      params,
+      passHeader: true,
     );
   }
 
   Future<ResponseModel> joinRide({required String rideId}) async {
     return await apiClient.request(
-      url: "${UrlContainer.baseUrl}api/shuttle/join-ride",
-      method: Method.postMethod,
-      params: {"ride_id": rideId},
-    );
-  }
-
-      params: {"ride_id": rideId, "action": action},
+      "${UrlContainer.baseUrl}api/shuttle/join-ride",
+      Method.postMethod,
+      {"ride_id": rideId},
+      passHeader: true,
     );
   }
 
   Future<ResponseModel> getActiveSharedRide() async {
     return await apiClient.request(
-        url: "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
-        method: Method.getMethod, // GET
-        params: {}
+      "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
+      Method.getMethod,
+      {},
+      passHeader: true,
     );
   }
-}
- 
-  // For creating a NEW ride (Rider 1), we might reuse ShuttleRepo.create or make a param here.
-  // But wait, the standard create uses Route ID.
-  // We need a way to create a 'Flexible' shuttle ride.
-  // I need to check ShuttleController.create on backend again.
-  // It REQUIRES route_id.
-  
-  // PROBLEM: The user wants to create a ride if no match found.
-  // Using ShuttleController::create will fail because it validates Route ID.
-  // I need a NEW create endpoint for Shared Rides that doesn't require Route ID.
-  
+
   Future<ResponseModel> createSharedRide({
      required double startLat,
      required double startLng,
@@ -66,7 +54,6 @@ class SharedRideRepo {
      required String pickupLocation,
      required String destination,
   }) async {
-      // I will need to implement 'create-shared-ride' on backend.
       Map<String, dynamic> params = {
         "start_lat": startLat.toString(),
         "start_lng": startLng.toString(),
@@ -77,13 +64,10 @@ class SharedRideRepo {
       };
       
       return await apiClient.request(
-        url: "${UrlContainer.baseUrl}api/shuttle/create-shared-ride", 
-        method: Method.postMethod,
-        params: params
-  Future<ResponseModel> getActiveSharedRide() async {
-    return await apiClient.request(
-        url: "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
-        method: Method.getMethod, // GET
-        params: {}
-    );
+        "${UrlContainer.baseUrl}api/shuttle/create-shared-ride", 
+        Method.postMethod,
+        params,
+        passHeader: true,
+      );
   }
+}
