@@ -13,6 +13,7 @@ import 'package:ovorideuser/presentation/screens/dashboard/dashboard_background.
 import 'package:ovorideuser/presentation/screens/home/widgets/home_app_bar.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/home_body.dart';
 
+import 'package:ovorideuser/presentation/screens/home/widgets/shared_ride_home_widget.dart';
 import 'widgets/location_pickup_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -77,6 +78,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 child: Column(
                   children: [
                     LocationPickUpHomeWidget(controller: controller),
+                    spaceDown(Dimensions.space20),
+                    // Shared Ride Widget (Always visible or conditional?)
+                    // Placing it here for easy access as requested
+                    const SharedRideHomeWidget(),
                     spaceDown(Dimensions.space20),
                     HomeBody(controller: controller),
                     spaceDown(Dimensions.space20),

@@ -26,6 +26,7 @@ import 'package:ovorideuser/presentation/components/bottom-sheet/custom_bottom_s
 import 'package:ovorideuser/presentation/components/dialog/app_dialog.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/bottomsheet/ride_distance_warning_bottom_sheet.dart';
+import 'package:ovorideuser/data/controller/shuttle/shuttle_controller.dart';
 
 class HomeController extends GetxController {
   HomeRepo homeRepo;
@@ -65,10 +66,10 @@ class HomeController extends GetxController {
       if (selectedLocations.length > 1) {
         ShuttleController shuttleController = Get.find();
         shuttleController.matchRoute(
-          startLat: selectedLocations[0].latitude,
-          startLng: selectedLocations[0].longitude,
-          endLat: selectedLocations[1].latitude,
-          endLng: selectedLocations[1].longitude,
+          startLat: selectedLocations[0].latitude ?? 0.0,
+          startLng: selectedLocations[0].longitude ?? 0.0,
+          endLat: selectedLocations[1].latitude ?? 0.0,
+          endLng: selectedLocations[1].longitude ?? 0.0,
         );
       }
     } else {

@@ -60,10 +60,10 @@ class _LocationPickUpHomeWidgetState extends State<LocationPickUpHomeWidget> {
                 if (widget.controller.selectedLocations.length > 1) {
                   if (widget.controller.isShuttleMode) {
                     Get.find<ShuttleController>().matchRoute(
-                      startLat: widget.controller.selectedLocations[0].latitude,
-                      startLng: widget.controller.selectedLocations[0].longitude,
-                      endLat: widget.controller.selectedLocations[1].latitude,
-                      endLng: widget.controller.selectedLocations[1].longitude,
+                      startLat: widget.controller.selectedLocations[0].latitude ?? 0.0,
+                      startLng: widget.controller.selectedLocations[0].longitude ?? 0.0,
+                      endLat: widget.controller.selectedLocations[1].latitude ?? 0.0,
+                      endLng: widget.controller.selectedLocations[1].longitude ?? 0.0,
                     );
                   } else {
                     widget.controller.getRideFare();

@@ -19,6 +19,12 @@ Route::prefix('shuttle')->middleware(['auth:sanctum', 'token.permission:auth_tok
     Route::get('routes', [ShuttleController::class, 'index']);
     Route::post('match-route', [ShuttleController::class, 'matchRoute']);
     Route::post('create', [ShuttleController::class, 'create']);
+    
+    // Shared Ride Routes
+    Route::post('match-shared-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'matchSharedRide']);
+    Route::post('create-shared-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'createSharedRide']);
+    Route::post('join-ride', [\App\Http\Controllers\Api\SharedRideController::class, 'joinRide']);
+    Route::post('update-ride-status', [\App\Http\Controllers\Api\SharedRideController::class, 'updateRideStatus']);
 });
 
 // Driver Shuttle Routes

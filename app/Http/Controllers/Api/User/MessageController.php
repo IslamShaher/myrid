@@ -35,7 +35,10 @@ class MessageController extends Controller
         }
 
         $user = auth()->user();
-        $ride = Ride::where('user_id', $user->id)->find($id);
+        $ride = Ride::where(function($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhere('second_user_id', $user->id);
+        })->find($id);
 
         if (!$ride) {
             $notify[] = 'Invalid ride';

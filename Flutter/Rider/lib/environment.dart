@@ -11,7 +11,7 @@ class Environment {
   static String defaultLanguageCode = "en";
 
   // Default country code (ISO 3166-1 alpha-2) used for locale-specific formatting
-  static const String defaultCountryCode = 'US';
+  static const String defaultCountryCode = 'EG';
 
   //MAP CONFIG
   static const bool addressPickerFromGoogleMapApi = true; //If true, use Google Map API for formate address picker from lat , long, else use free service reverse geocode

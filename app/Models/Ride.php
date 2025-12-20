@@ -16,6 +16,7 @@ class Ride extends Model
         'start_stop_id'         => 'integer',
         'end_stop_id'           => 'integer',
         'user_id'               => 'integer',
+        'second_user_id'        => 'integer',
         'driver_id'             => 'integer',
         'service_id'            => 'integer',
         'gateway_currency_id'   => 'integer',
@@ -125,6 +126,11 @@ class Ride extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function secondUser()
+    {
+        return $this->belongsTo(User::class, 'second_user_id');
     }
 
     public function service()
