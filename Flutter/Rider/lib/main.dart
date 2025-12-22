@@ -79,7 +79,7 @@ class _OvoAppState extends State<OvoApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    MyUtils.precacheImagesFromPathList(context, [MyImages.backgroundImage, MyImages.logoWhite, MyImages.noDataImage]);
+    MyUtils.precacheImagesFromPathList(context, [MyImages.backgroundImage, MyImages.logoWhite]);
   }
 
   @override

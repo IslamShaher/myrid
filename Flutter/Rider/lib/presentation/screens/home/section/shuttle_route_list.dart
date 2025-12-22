@@ -62,8 +62,10 @@ class ShuttleRouteList extends StatelessWidget {
                 physics: NeverScrollableScrollPhysics(),
                 itemCount: controller.shuttleRouteModel?.matches?.length ?? 0,
                 itemBuilder: (context, index) {
+                  final match = controller.shuttleRouteModel?.matches?[index];
+                  if (match == null) return const SizedBox.shrink();
                   return ShuttleRouteCard(
-                    match: controller.shuttleRouteModel!.matches![index],
+                    match: match,
                     controller: controller,
                     index: index,
                   );

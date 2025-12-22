@@ -11,6 +11,8 @@ import 'package:get/get.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
 import 'package:ovorideuser/presentation/screens/dashboard/dashboard_background.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/home_app_bar.dart';
+import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart';
+import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/home_body.dart';
 
 import 'package:ovorideuser/presentation/screens/home/widgets/shared_ride_home_widget.dart';
@@ -37,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
     Get.put(ShuttleRepo(apiClient: Get.find()));
     Get.put(ShuttleController(shuttleRepo: Get.find()));
+    Get.put(SharedRideRepo(apiClient: Get.find()));
+    Get.put(SharedRideController(sharedRideRepo: Get.find()));
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {

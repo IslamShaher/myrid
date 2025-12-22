@@ -58,26 +58,86 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                     children: [
                       Text("Find a Shared Ride Partner", style: boldLarge),
                       spaceDown(Dimensions.space15),
-                      // Inputs
-                      // For prototype speed, I am adding direct text fields for lat/lng
-                      // BUT ideally this should open the Map Picker.
-                      // Let's use a placeholder button "Pick Locations"
+                      
+                      // Coordinate Inputs for Testing
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: controller.startLatController,
+                              decoration: InputDecoration(labelText: "Start Lat", border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: controller.startLngController,
+                              decoration: InputDecoration(labelText: "Start Lng", border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      spaceDown(Dimensions.space10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: controller.endLatController,
+                              decoration: InputDecoration(labelText: "End Lat", border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: controller.endLngController,
+                              decoration: InputDecoration(labelText: "End Lng", border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      spaceDown(Dimensions.space15),
+                      
                       RoundedButton(
-                        text: "Select Trip Route",
+                        text: "Match Ride",
                         press: () {
-                           // Logic to open LocationPicker and get result
-                           // This requires hooking into existing LocationPicker logic
-                           // checking location_picker_screen.dart
+                           print("Match Ride button pressed");
+                           double? sLat = double.tryParse(controller.startLatController.text);
+                           double? sLng = double.tryParse(controller.startLngController.text);
+                           double? eLat = double.tryParse(controller.endLatController.text);
+                           double? eLng = double.tryParse(controller.endLngController.text);
+
+                           print("Coords: $sLat, $sLng -> $eLat, $eLng");
+
+                           if (sLat != null && sLng != null && eLat != null && eLng != null) {
+                             controller.matchSharedRide(
+                               startLat: sLat,
+                               startLng: sLng,
+                               endLat: eLat,
+                               endLng: eLng,
+                               pickupLocation: "Test Source",
+                               destination: "Test Destination",
+                             );
+                           } else {
+                             print("Setting dummy values...");
+                             controller.startLatController.text = "30.0444";
+                             controller.startLngController.text = "31.2357";
+                             controller.endLatController.text = "30.0131";
+                             controller.endLngController.text = "31.2089";
+                             controller.update(); // Trigger rebuild if needed for fields
+                           }
                         },
                       ),
-                      // Temporary Manual Input for testing
                       spaceDown(Dimensions.space10),
                       ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
                             color: Colors.grey.withOpacity(0.1),
                             padding: const EdgeInsets.all(10),
-                            child: const Text("Location Picker Integration Required\nUsing fixed coordinates for test? Or add map integration."),
+                            child: const Text("Enter coords above (Cairo defaults set on first click if empty)"),
                           ),
                       ),
                     ],

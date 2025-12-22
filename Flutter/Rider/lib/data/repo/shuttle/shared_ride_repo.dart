@@ -21,7 +21,7 @@ class SharedRideRepo {
     };
 
     return await apiClient.request(
-      "${UrlContainer.baseUrl}api/shuttle/match-shared-ride",
+      "${UrlContainer.baseUrl}shuttle/match-shared-ride",
       Method.postMethod,
       params,
       passHeader: true,
@@ -30,7 +30,7 @@ class SharedRideRepo {
 
   Future<ResponseModel> joinRide({required String rideId}) async {
     return await apiClient.request(
-      "${UrlContainer.baseUrl}api/shuttle/join-ride",
+      "${UrlContainer.baseUrl}shuttle/join-ride",
       Method.postMethod,
       {"ride_id": rideId},
       passHeader: true,
@@ -39,7 +39,7 @@ class SharedRideRepo {
 
   Future<ResponseModel> getActiveSharedRide() async {
     return await apiClient.request(
-      "${UrlContainer.baseUrl}api/shuttle/active-shared-ride",
+      "${UrlContainer.baseUrl}shuttle/active-shared-ride",
       Method.getMethod,
       {},
       passHeader: true,
@@ -64,7 +64,7 @@ class SharedRideRepo {
       };
       
       return await apiClient.request(
-        "${UrlContainer.baseUrl}api/shuttle/create-shared-ride", 
+        "${UrlContainer.baseUrl}shuttle/create-shared-ride", 
         Method.postMethod,
         params,
         passHeader: true,
@@ -73,7 +73,7 @@ class SharedRideRepo {
 
   Future<ResponseModel> updateRideStatus({required String rideId, required String action}) async {
     return await apiClient.request(
-        "${UrlContainer.baseUrl}api/shuttle/ride-status-update", 
+        "${UrlContainer.baseUrl}shuttle/ride-status-update", 
         Method.postMethod,
         {"ride_id": rideId, "action": action},
         passHeader: true,

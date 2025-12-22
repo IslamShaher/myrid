@@ -157,7 +157,10 @@ class HomeController extends GetxController {
           );
           if (model.data?.runningRide != null && RunningRideService.instance.isRunningShow == false) {
             RunningRideService.instance.setIsRunning(true);
-            runningRide = model.data!.runningRide!;
+            final ride = model.data?.runningRide;
+            if (ride != null) {
+              runningRide = ride;
+            }
             
             // Only show "reached destination" message for ended rides, not running ones
             String dialogTitle = MyStrings.runningRideAlertTitle.tr;
@@ -222,7 +225,7 @@ class HomeController extends GetxController {
     try {
       ResponseModel responseModel = await homeRepo.createRide(
         data: CreateRideRequestModel(
-          serviceId: selectedService.id!,
+          serviceId: selectedService.id ?? '',
           pickUpLocation: selectedLocations[0].fullAddress ?? "",
           pickUpLatitude: selectedLocations[0].latitude.toString(),
           pickUpLongitude: selectedLocations[0].longitude.toString(),
@@ -235,7 +238,7 @@ class HomeController extends GetxController {
           note: noteController.text,
           offerAmount: mainAmount.toString(),
           paymentType: selectedPaymentMethod.id == "-9" ? "2" : '1',
-          gatewayCurrencyId: selectedPaymentMethod.id!,
+          gatewayCurrencyId: selectedPaymentMethod.id ?? '',
         ),
       );
       if (responseModel.statusCode == 200) {

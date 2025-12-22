@@ -76,14 +76,14 @@ class RideInfo {
 
   RideInfo.fromJson(Map<String, dynamic> json) {
     id = json['id'];
-    pickupLocation = json['pickup_location'];
-    destination = json['destination'];
-    distance = json['distance'].toString();
-    duration = json['duration'].toString();
-    amount = json['amount'].toString();
-    pickupLat = double.tryParse(json['pickup_latitude'].toString());
-    pickupLng = double.tryParse(json['pickup_longitude'].toString());
-    destLat = double.tryParse(json['destination_latitude'].toString());
-    destLng = double.tryParse(json['destination_longitude'].toString());
+    pickupLocation = json['pickup_location']?.toString();
+    destination = json['destination']?.toString();
+    distance = json['distance']?.toString();
+    duration = json['duration']?.toString();
+    amount = json['amount']?.toString();
+    pickupLat = double.tryParse(json['pickup_latitude']?.toString() ?? '');
+    pickupLng = double.tryParse(json['pickup_longitude']?.toString() ?? '');
+    destLat = double.tryParse(json['destination_latitude']?.toString() ?? '');
+    destLng = double.tryParse(json['destination_longitude']?.toString() ?? '');
   }
 }

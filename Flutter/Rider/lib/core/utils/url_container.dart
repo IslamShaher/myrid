@@ -1,5 +1,5 @@
 class UrlContainer {
-  static const String domainUrl = 'http://192.168.1.13'; //YOUR WEBSITE DOMAIN URL HERE
+  static const String domainUrl = 'http://10.0.2.2:8080'; //YOUR WEBSITE DOMAIN URL HERE
 
   static const String baseUrl = '$domainUrl/api/';
   static const String dashBoardEndPoint = 'dashboard';

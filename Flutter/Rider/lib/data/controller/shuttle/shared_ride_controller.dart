@@ -62,11 +62,13 @@ class SharedRideController extends GetxController {
     required String pickupLocation,
     required String destination,
   }) async {
+    print("matchSharedRide called with: $startLat, $startLng to $endLat, $endLng");
     isLoading = true;
     searched = true;
     update();
 
     try {
+      print("Sending request to matchSharedRide...");
       ResponseModel responseModel = await sharedRideRepo.matchSharedRide(
         startLat: startLat,
         startLng: startLng,
@@ -74,13 +76,18 @@ class SharedRideController extends GetxController {
         endLng: endLng,
       );
 
+      print("Response status: ${responseModel.statusCode}");
+      print("Response body: ${responseModel.responseJson}");
+
       if (responseModel.statusCode == 200) {
         SharedRideMatchModel model = SharedRideMatchModel.fromJson(responseModel.responseJson);
         matches = model.matches ?? [];
+        print("Found ${matches.length} matches");
         
         if (matches.isEmpty) {
           // "create new ride if no matches automatically"
           CustomSnackBar.success(successList: ["No matches found. Creating a new ride request for you..."]);
+          print("No matches, creating shared ride...");
           await createSharedRide(
             startLat: startLat, 
             startLng: startLng, 
@@ -94,6 +101,7 @@ class SharedRideController extends GetxController {
         CustomSnackBar.error(errorList: [responseModel.message]);
       }
     } catch (e) {
+      print("Error in matchSharedRide: $e");
       CustomSnackBar.error(errorList: [MyStrings.somethingWentWrong.tr]);
     } finally {
       isLoading = false;
