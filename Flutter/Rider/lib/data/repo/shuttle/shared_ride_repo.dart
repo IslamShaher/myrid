@@ -28,11 +28,24 @@ class SharedRideRepo {
     );
   }
 
-  Future<ResponseModel> joinRide({required String rideId}) async {
+  Future<ResponseModel> joinRide({
+    required String rideId,
+    double? startLat,
+    double? startLng,
+    double? endLat,
+    double? endLng,
+  }) async {
+    Map<String, dynamic> params = {"ride_id": rideId};
+    if (startLat != null && startLng != null && endLat != null && endLng != null) {
+      params["start_lat"] = startLat.toString();
+      params["start_lng"] = startLng.toString();
+      params["end_lat"] = endLat.toString();
+      params["end_lng"] = endLng.toString();
+    }
     return await apiClient.request(
       "${UrlContainer.baseUrl}shuttle/join-ride",
       Method.postMethod,
-      {"ride_id": rideId},
+      params,
       passHeader: true,
     );
   }
@@ -53,6 +66,8 @@ class SharedRideRepo {
      required double endLng,
      required String pickupLocation,
      required String destination,
+     bool isScheduled = false,
+     String? scheduledTime,
   }) async {
       Map<String, dynamic> params = {
         "start_lat": startLat.toString(),
@@ -61,7 +76,12 @@ class SharedRideRepo {
         "end_lng": endLng.toString(),
         "pickup_location": pickupLocation,
         "destination": destination,
+        "is_scheduled": isScheduled,
       };
+      
+      if (isScheduled && scheduledTime != null) {
+        params["scheduled_time"] = scheduledTime;
+      }
       
       return await apiClient.request(
         "${UrlContainer.baseUrl}shuttle/create-shared-ride", 
@@ -73,10 +93,28 @@ class SharedRideRepo {
 
   Future<ResponseModel> updateRideStatus({required String rideId, required String action}) async {
     return await apiClient.request(
-        "${UrlContainer.baseUrl}shuttle/ride-status-update", 
+        "${UrlContainer.baseUrl}shuttle/update-ride-status", 
         Method.postMethod,
         {"ride_id": rideId, "action": action},
         passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> getPendingSharedRides() async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/pending-shared-rides",
+      Method.getMethod,
+      {},
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> getConfirmedSharedRides() async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/confirmed-shared-rides",
+      Method.getMethod,
+      {},
+      passHeader: true,
     );
   }
 }

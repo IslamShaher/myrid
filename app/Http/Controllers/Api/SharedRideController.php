@@ -25,6 +25,7 @@ class SharedRideController extends Controller
             'start_lng' => 'required|numeric',
             'end_lat'   => 'required|numeric',
             'end_lng'   => 'required|numeric',
+            'scheduled_time' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -35,15 +36,26 @@ class SharedRideController extends Controller
         $startLng = $request->start_lng;
         $endLat   = $request->end_lat;
         $endLng   = $request->end_lng;
+        
+        // Get requested scheduled time (default to now)
+        $requestedTime = $request->has('scheduled_time') && $request->scheduled_time 
+            ? Carbon::parse($request->scheduled_time) 
+            : Carbon::now();
 
         // Radius in km
         $radius = 5.0;
+        
+        // Time window: ±40 minutes
+        $timeWindowMinutes = 40;
+        $timeWindowStart = $requestedTime->copy()->subMinutes($timeWindowMinutes);
+        $timeWindowEnd = $requestedTime->copy()->addMinutes($timeWindowMinutes);
 
-        // Find active shared rides with no second user
+        // Find active shared rides with no second user, matching time window
         $rides = Ride::where('status', \App\Constants\Status::RIDE_ACTIVE)
-            ->where('ride_type', \App\Constants\Status::SHARED_RIDE) // Use SHARED_RIDE to avoid mixing with fixed route shuttles
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
             ->whereNull('second_user_id')
             ->where('user_id', '!=', auth()->id()) // Don't match own ride
+            ->whereBetween('scheduled_time', [$timeWindowStart, $timeWindowEnd])
             ->get();
 
         $matches = [];
@@ -68,7 +80,55 @@ class SharedRideController extends Controller
                 // Determine Overhead
                 $matchData = $this->calculateOverhead($ride, $startLat, $startLng, $endLat, $endLng);
                 if ($matchData) {
-                     $matches[] = $matchData;
+                    // Calculate estimated pickup time for user 2
+                    // Time = ride scheduled_time + cumulative travel time to reach user 2's pickup point
+                    $rideScheduledTime = $ride->scheduled_time ? Carbon::parse($ride->scheduled_time) : Carbon::now();
+                    
+                    // Calculate cumulative travel time to S2 based on sequence
+                    $sequence = $matchData['sequence'] ?? [];
+                    if (!empty($sequence)) {
+                        $s2Index = array_search('S2', $sequence);
+                        $s1Index = array_search('S1', $sequence);
+                        
+                        if ($s2Index !== false && $s1Index !== false && $s2Index > $s1Index) {
+                            // S2 comes after S1 - calculate time from S1 to S2
+                            $travelTimeData = $this->googleMapsService->getDistanceMatrix(
+                                $ride->pickup_latitude, $ride->pickup_longitude,
+                                $startLat, $startLng
+                            );
+                            
+                            if ($travelTimeData) {
+                                $travelTimeSeconds = $travelTimeData['duration_value'] ?? 0;
+                                $estimatedPickupTime = $rideScheduledTime->copy()->addSeconds($travelTimeSeconds);
+                                $matchData['estimated_pickup_time'] = $estimatedPickupTime->toIso8601String();
+                                $matchData['estimated_pickup_time_readable'] = $estimatedPickupTime->format('H:i');
+                            }
+                        } elseif ($s2Index !== false && $s1Index !== false && $s2Index < $s1Index) {
+                            // S2 comes before S1 - user 2 will be picked up first (shouldn't happen often)
+                            // For now, estimate based on travel from ride start to S2
+                            // Actually, if S2 is first, the scheduled time might represent when S2 should be picked up
+                            // But since Rider 1 created the ride, we assume they start at their location
+                            $travelTimeData = $this->googleMapsService->getDistanceMatrix(
+                                $ride->pickup_latitude, $ride->pickup_longitude,
+                                $startLat, $startLng
+                            );
+                            
+                            if ($travelTimeData) {
+                                $travelTimeSeconds = $travelTimeData['duration_value'] ?? 0;
+                                // If S2 is first, pickup might be before scheduled time (rider 1 leaves early)
+                                // For simplicity, use scheduled time as baseline
+                                $estimatedPickupTime = $rideScheduledTime->copy()->addSeconds($travelTimeSeconds);
+                                $matchData['estimated_pickup_time'] = $estimatedPickupTime->toIso8601String();
+                                $matchData['estimated_pickup_time_readable'] = $estimatedPickupTime->format('H:i');
+                            }
+                        }
+                    }
+                    
+                    // Also include ride scheduled time
+                    $matchData['ride_scheduled_time'] = $rideScheduledTime->toIso8601String();
+                    $matchData['ride_scheduled_time_readable'] = $rideScheduledTime->format('M d, Y H:i');
+                    
+                    $matches[] = $matchData;
                 }
             }
         }
@@ -115,7 +175,8 @@ class SharedRideController extends Controller
         // To optimize, maybe we just calculate straight line or use stored duration for Rider 1 solo.
         
         // Stored Rider 1 Solo Duration
-        $r1SoloDuration = $ride->duration; // seconds
+        $r1SoloDuration = $ride->duration * 60; // Convert minutes to seconds
+        $r1SoloDistance = $ride->distance; // km
 
         // Rider 2 Solo - Need to calculate
         $r2Solo = $this->googleMapsService->getDistanceMatrix(
@@ -124,6 +185,7 @@ class SharedRideController extends Controller
         );
         if(!$r2Solo) return null;
         $r2SoloDuration = $r2Solo['duration_value']; // seconds
+        $r2SoloDistance = $r2Solo['distance']; // km
 
         // 2. Permutations
         // S1 -> S2 -> E1 -> E2
@@ -225,9 +287,9 @@ class SharedRideController extends Controller
                 $minTotalDuration = $totalSeqDuration;
                 $bestSequence = $seq;
                 $bestOverhead = [
-                    'r1_overhead' => $overhead1,
-                    'r2_overhead' => $overhead2,
-                    'total_overhead' => $totalOverhead,
+                    'r1_overhead' => round($overhead1 / 60, 1), // Convert to minutes
+                    'r2_overhead' => round($overhead2 / 60, 1), // Convert to minutes
+                    'total_overhead' => round($totalOverhead / 60, 1), // Convert to minutes
                     'sequence' => $seq,
                     'r1_solo' => $r1SoloDuration,
                     'r2_solo' => $r2SoloDuration,
@@ -242,9 +304,16 @@ class SharedRideController extends Controller
         // Add Base Fare to both? Or split base fare? 
         // Usually base fare is per rider.
         $baseFare = 5.00;
+        $pricePerKm = 2.00;
         if(isset($bestOverhead)) {
             $bestOverhead['r1_fare'] += $baseFare;
             $bestOverhead['r2_fare'] += $baseFare;
+            
+            // Calculate solo fares for savings calculation
+            $r1SoloFare = $baseFare + ($r1SoloDistance * $pricePerKm);
+            $r2SoloFare = $baseFare + ($r2SoloDistance * $pricePerKm);
+            $bestOverhead['r1_solo_fare'] = round($r1SoloFare, 2);
+            $bestOverhead['r2_solo_fare'] = round($r2SoloFare, 2);
         }
         
         return array_merge(['ride' => $ride], $bestOverhead ?? []);
@@ -272,6 +341,10 @@ class SharedRideController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'ride_id' => 'required|exists:rides,id',
+            'start_lat' => 'nullable|numeric',
+            'start_lng' => 'nullable|numeric',
+            'end_lat' => 'nullable|numeric',
+            'end_lng' => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -289,15 +362,62 @@ class SharedRideController extends Controller
         }
 
         $ride->second_user_id = auth()->id();
+        
+        // Store Rider 2's coordinates if provided (for map display)
+        if ($request->has('start_lat') && $request->has('start_lng') && 
+            $request->has('end_lat') && $request->has('end_lng')) {
+            // Store in a JSON field or separate columns
+            // For now, we'll use a JSON approach or add columns
+            // Since we don't have columns, let's calculate and store the sequence
+            $u2StartLat = $request->start_lat;
+            $u2StartLng = $request->start_lng;
+            $u2EndLat = $request->end_lat;
+            $u2EndLng = $request->end_lng;
+            
+            // Calculate the best sequence and store it
+            $matchData = $this->calculateOverhead($ride, $u2StartLat, $u2StartLng, $u2EndLat, $u2EndLng);
+            if ($matchData && isset($matchData['sequence'])) {
+                // Store sequence as JSON in a field (we'll add a migration for this)
+                // For now, store in a JSON column if it exists, otherwise we'll add it
+                $ride->second_pickup_latitude = $u2StartLat;
+                $ride->second_pickup_longitude = $u2StartLng;
+                $ride->second_destination_latitude = $u2EndLat;
+                $ride->second_destination_longitude = $u2EndLng;
+                $ride->shared_ride_sequence = json_encode($matchData['sequence']);
+            }
+        }
+        
         $ride->save();
 
-        // Notify Rider 1
-        // event(new \App\Events\Ride("rider-user-{$ride->user_id}", "RIDER_JOINED", ['ride' => $ride]));
+        // Load the joining user (Rider 2) with details for notification
+        $rider2 = \App\Models\User::find(auth()->id());
+        $rider1 = \App\Models\User::find($ride->user_id);
+        
+        // Notify Rider 1 with push notification including Rider 2 details
+        // Note: For push notification to work, DEFAULT template must exist in notification_templates table
+        // with push_status enabled. Otherwise, only Pusher event will be sent.
+        if ($rider2 && $rider1) {
+            $riderName = $rider2->firstname . ' ' . $rider2->lastname;
+            $riderRating = number_format($rider2->avg_rating ?? 0, 1);
+            $shortCodes = [
+                'subject' => 'New Rider Joined Your Shared Ride',
+                'message' => "{$riderName} (Rating: {$riderRating}) has joined your shared ride.",
+            ];
+            // Try to send push notification (will only work if DEFAULT template exists)
+            try {
+                notify($rider1, 'DEFAULT', $shortCodes, ['push']);
+            } catch (\Exception $e) {
+                // If notification fails, Pusher event will still notify the user
+            }
+        }
+        
+        // Also send Pusher event for real-time update
+        event(new \App\Events\Ride("rider-user-{$ride->user_id}", "RIDER_JOINED", ['ride' => $ride->load('secondUser')]));
 
         return response()->json([
             'success' => true,
             'message' => 'You have joined the ride.',
-            'ride' => $ride
+            'ride' => $ride->load('secondUser')
         ]);
     }
 
@@ -354,6 +474,8 @@ class SharedRideController extends Controller
             'end_lng'   => 'required|numeric',
             'pickup_location' => 'required|string',
             'destination' => 'required|string',
+            'is_scheduled' => 'nullable|boolean',
+            'scheduled_time' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -406,13 +528,278 @@ class SharedRideController extends Controller
         $ride->number_of_passenger   = 1;
         $ride->otp                   = getNumber(4);
         $ride->driver_id             = 0;
+        
+        // Handle scheduling
+        $ride->is_scheduled = $request->has('is_scheduled') && $request->is_scheduled;
+        if ($ride->is_scheduled && $request->has('scheduled_time') && $request->scheduled_time) {
+            $ride->scheduled_time = Carbon::parse($request->scheduled_time);
+        } else {
+            // Default to now if not scheduled
+            $ride->is_scheduled = false;
+            $ride->scheduled_time = Carbon::now();
+        }
+        
         $ride->save();
+        
+        // Different message for scheduled rides
+        $message = $ride->is_scheduled && $ride->scheduled_time > Carbon::now()
+            ? 'Your ride has been created. You\'ll receive a notification when a match is found.'
+            : 'Shared Ride matched/created successfully.';
         
         return response()->json([
             'success' => true,
-            'message' => 'Shared Ride matched/created successfully.',
-            'ride' => $ride
+            'message' => $message,
+            'ride' => $ride,
+            'is_scheduled' => $ride->is_scheduled,
+            'should_return_to_home' => $ride->is_scheduled && $ride->scheduled_time > Carbon::now() && !$ride->second_user_id
         ]);
+    }
+
+    public function activeSharedRide(Request $request)
+    {
+        try {
+            // Check if user is rider 1 (created the ride) or rider 2 (joined the ride)
+            $ride = Ride::where(function($query) {
+                    $query->where('user_id', auth()->id())
+                          ->orWhere('second_user_id', auth()->id());
+                })
+                ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+                ->whereIn('status', [\App\Constants\Status::RIDE_ACTIVE, \App\Constants\Status::RIDE_RUNNING])
+                ->with('user', 'service', 'secondUser')
+                ->first();
+
+            if ($ride) {
+                // If we have Rider 2's coordinates, calculate and include sequence info
+                $responseData = $ride->toArray();
+                
+                if ($ride->second_user_id && 
+                    $ride->second_pickup_latitude && 
+                    $ride->second_pickup_longitude &&
+                    $ride->second_destination_latitude &&
+                    $ride->second_destination_longitude) {
+                    // Recalculate sequence if not stored, or use stored one
+                    if ($ride->shared_ride_sequence) {
+                        $responseData['shared_ride_sequence'] = json_decode($ride->shared_ride_sequence, true);
+                    } else {
+                        // Recalculate
+                        $matchData = $this->calculateOverhead(
+                            $ride,
+                            $ride->second_pickup_latitude,
+                            $ride->second_pickup_longitude,
+                            $ride->second_destination_latitude,
+                            $ride->second_destination_longitude
+                        );
+                        if ($matchData && isset($matchData['sequence'])) {
+                            $responseData['shared_ride_sequence'] = $matchData['sequence'];
+                        }
+                    }
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $responseData
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No active shared ride found.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching active ride: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get pending shared rides (rides without second user)
+     */
+    public function getPendingSharedRides(Request $request)
+    {
+        try {
+            $rides = Ride::where('ride_type', \App\Constants\Status::SHARED_RIDE)
+                ->where(function($query) {
+                    $query->where('user_id', auth()->id())
+                          ->orWhere('second_user_id', auth()->id());
+                })
+                ->where('status', \App\Constants\Status::RIDE_ACTIVE)
+                ->whereNull('second_user_id')
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $ridesData = $rides->map(function($ride) {
+                return [
+                    'id' => $ride->id,
+                    'uid' => $ride->uid,
+                    'pickup_location' => $ride->pickup_location,
+                    'destination' => $ride->destination,
+                    'pickup_latitude' => $ride->pickup_latitude,
+                    'pickup_longitude' => $ride->pickup_longitude,
+                    'destination_latitude' => $ride->destination_latitude,
+                    'destination_longitude' => $ride->destination_longitude,
+                    'distance' => $ride->distance,
+                    'duration' => $ride->duration,
+                    'amount' => $ride->amount,
+                    'is_scheduled' => $ride->is_scheduled,
+                    'scheduled_time' => $ride->scheduled_time ? $ride->scheduled_time->toIso8601String() : null,
+                    'scheduled_time_readable' => $ride->scheduled_time ? $ride->scheduled_time->format('M d, Y H:i') : null,
+                    'created_at' => $ride->created_at->toIso8601String(),
+                    'user' => [
+                        'id' => $ride->user->id,
+                        'firstname' => $ride->user->firstname,
+                        'lastname' => $ride->user->lastname,
+                        'username' => $ride->user->username,
+                        'image' => $ride->user->image,
+                        'rating' => $ride->user->rating ?? 0,
+                    ]
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'rides' => $ridesData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get confirmed shared rides (rides with second user but ride hasn't started yet)
+     */
+    public function getConfirmedSharedRides(Request $request)
+    {
+        try {
+            $now = Carbon::now();
+            $rides = Ride::where('ride_type', \App\Constants\Status::SHARED_RIDE)
+                ->where(function($query) {
+                    $query->where('user_id', auth()->id())
+                          ->orWhere('second_user_id', auth()->id());
+                })
+                ->where('status', \App\Constants\Status::RIDE_ACTIVE)
+                ->whereNotNull('second_user_id')
+                ->where(function($query) use ($now) {
+                    $query->whereNull('scheduled_time')
+                          ->orWhere('scheduled_time', '>', $now);
+                })
+                ->with('user', 'secondUser')
+                ->orderBy('scheduled_time', 'asc')
+                ->get();
+
+            $currentUserId = auth()->id();
+            $ridesData = $rides->map(function($ride) use ($currentUserId) {
+                // Determine if current user is rider 1 or rider 2
+                $isRider1 = $ride->user_id == $currentUserId;
+                $otherUser = $isRider1 ? $ride->secondUser : $ride->user;
+                
+                // Calculate estimated pickup time for current user
+                $estimatedPickupTime = null;
+                $estimatedPickupTimeReadable = null;
+                
+                if ($ride->scheduled_time && $ride->shared_ride_sequence) {
+                    $sequence = json_decode($ride->shared_ride_sequence, true);
+                    if ($sequence && is_array($sequence)) {
+                        $rideScheduledTime = Carbon::parse($ride->scheduled_time);
+                        
+                        // Find when current user's pickup (S1 or S2) comes in sequence
+                        $userPickupCode = $isRider1 ? 'S1' : 'S2';
+                        $otherPickupCode = $isRider1 ? 'S2' : 'S1';
+                        
+                        $userPickupIndex = array_search($userPickupCode, $sequence);
+                        $otherPickupIndex = array_search($otherPickupCode, $sequence);
+                        
+                        if ($userPickupIndex !== false && $otherPickupIndex !== false) {
+                            // If other pickup comes first, add travel time
+                            if ($otherPickupIndex < $userPickupIndex) {
+                                $fromLat = $isRider1 ? $ride->second_pickup_latitude : $ride->pickup_latitude;
+                                $fromLng = $isRider1 ? $ride->second_pickup_longitude : $ride->pickup_longitude;
+                                $toLat = $isRider1 ? $ride->pickup_latitude : $ride->second_pickup_latitude;
+                                $toLng = $isRider1 ? $ride->pickup_longitude : $ride->second_pickup_longitude;
+                                
+                                $travelTimeData = $this->googleMapsService->getDistanceMatrix($fromLat, $fromLng, $toLat, $toLng);
+                                if ($travelTimeData) {
+                                    $travelTimeSeconds = $travelTimeData['duration_value'] ?? 0;
+                                    $estimatedPickupTime = $rideScheduledTime->copy()->addSeconds($travelTimeSeconds);
+                                    $estimatedPickupTimeReadable = $estimatedPickupTime->format('H:i');
+                                }
+                            } else {
+                                // User is picked up first
+                                $estimatedPickupTime = $rideScheduledTime;
+                                $estimatedPickupTimeReadable = $rideScheduledTime->format('H:i');
+                            }
+                        }
+                    }
+                }
+                
+                // Get match data for fare and overhead info
+                $r1Fare = null;
+                $r2Fare = null;
+                $totalOverhead = null;
+                
+                if ($ride->second_pickup_latitude && $ride->second_pickup_longitude) {
+                    $matchData = $this->calculateOverhead(
+                        $ride,
+                        $ride->second_pickup_latitude,
+                        $ride->second_pickup_longitude,
+                        $ride->second_destination_latitude,
+                        $ride->second_destination_longitude
+                    );
+                    if ($matchData) {
+                        $r1Fare = $matchData['r1_fare'] ?? null;
+                        $r2Fare = $matchData['r2_fare'] ?? null;
+                        $totalOverhead = $matchData['total_overhead'] ?? null;
+                    }
+                }
+                
+                return [
+                    'id' => $ride->id,
+                    'uid' => $ride->uid,
+                    'pickup_location' => $ride->pickup_location,
+                    'destination' => $ride->destination,
+                    'pickup_latitude' => $ride->pickup_latitude,
+                    'pickup_longitude' => $ride->pickup_longitude,
+                    'destination_latitude' => $ride->destination_latitude,
+                    'destination_longitude' => $ride->destination_longitude,
+                    'second_pickup_latitude' => $ride->second_pickup_latitude,
+                    'second_pickup_longitude' => $ride->second_pickup_longitude,
+                    'second_destination_latitude' => $ride->second_destination_latitude,
+                    'second_destination_longitude' => $ride->second_destination_longitude,
+                    'shared_ride_sequence' => json_decode($ride->shared_ride_sequence, true),
+                    'is_rider1' => $isRider1,
+                    'estimated_pickup_time' => $estimatedPickupTime ? $estimatedPickupTime->toIso8601String() : null,
+                    'estimated_pickup_time_readable' => $estimatedPickupTimeReadable,
+                    'scheduled_time' => $ride->scheduled_time ? $ride->scheduled_time->toIso8601String() : null,
+                    'scheduled_time_readable' => $ride->scheduled_time ? $ride->scheduled_time->format('M d, Y H:i') : null,
+                    'r1_fare' => $r1Fare,
+                    'r2_fare' => $r2Fare,
+                    'total_overhead' => $totalOverhead,
+                    'other_user' => $otherUser ? [
+                        'id' => $otherUser->id,
+                        'firstname' => $otherUser->firstname,
+                        'lastname' => $otherUser->lastname,
+                        'username' => $otherUser->username,
+                        'image' => $otherUser->image,
+                        'rating' => $otherUser->rating ?? 0,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'rides' => $ridesData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

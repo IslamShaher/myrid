@@ -94,8 +94,15 @@ class Push extends NotifyProcess implements Notifiable
                 $data['data'] = [
                     'icon'             => siteFavicon(),
                     'click_action'     => $this->redirectUrl,
-                    'app_click_action' => $this->redirectForApp($this->templateName)
+                    'app_click_action' => $this->redirectForApp($this->templateName),
+                    'for_app'          => $this->templateName == 'SHARED_RIDE_STARTED' ? 'ride_details_screen' : $this->redirectForApp($this->templateName)
                 ];
+                
+                // Add ride_id to data if it exists in shortCodes (for SHARED_RIDE_STARTED)
+                if ($this->shortCodes && isset($this->shortCodes['ride_id'])) {
+                    $data['data']['ride_id'] = (string) $this->shortCodes['ride_id'];
+                    $data['data']['for_app'] = 'ride_details_screen';
+                }
                 
                 foreach ($this->toAddress as $toAddress) {
                     $data['token'] = $toAddress;

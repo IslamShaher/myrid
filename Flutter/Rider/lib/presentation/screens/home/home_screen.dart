@@ -16,6 +16,8 @@ import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/screens/home/widgets/home_body.dart';
 
 import 'package:ovorideuser/presentation/screens/home/widgets/shared_ride_home_widget.dart';
+import 'package:ovorideuser/presentation/screens/home/widgets/pending_shared_rides_widget.dart';
+import 'package:ovorideuser/presentation/screens/home/widgets/confirmed_shared_rides_widget.dart';
 import 'widgets/location_pickup_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -75,6 +77,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               backgroundColor: MyColor.colorWhite,
               onRefresh: () async {
                 controller.initialData(shouldLoad: true);
+                // Also refresh shared rides
+                final sharedRideController = Get.find<SharedRideController>();
+                await sharedRideController.loadPendingAndConfirmedRides();
               },
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: Dimensions.space16),
@@ -83,6 +88,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   children: [
                     LocationPickUpHomeWidget(controller: controller),
                     spaceDown(Dimensions.space20),
+                    
+                    // Confirmed Shared Rides (rides with matches but time hasn't come)
+                    const ConfirmedSharedRidesWidget(),
+                    spaceDown(Dimensions.space20),
+                    
+                    // Pending Shared Rides (rides waiting for matches)
+                    const PendingSharedRidesWidget(),
+                    spaceDown(Dimensions.space20),
+                    
                     // Shared Ride Widget (Always visible or conditional?)
                     // Placing it here for easy access as requested
                     const SharedRideHomeWidget(),

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 class Ride extends Model
 {
     protected $guard = ['id'];
-
+    
     protected $casts = [
         'ride_type'             => 'integer',
         'route_id'              => 'integer',
@@ -38,6 +38,7 @@ class Ride extends Model
         'canceled_user_type'    => 'integer',
         'start_time'            => 'datetime',
         'end_time'              => 'datetime',
+        'scheduled_time'        => 'datetime',
     ];
 
 

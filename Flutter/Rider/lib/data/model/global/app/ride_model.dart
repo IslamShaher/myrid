@@ -52,6 +52,7 @@ class RideModel {
   String? endTime;
 
   GlobalUser? user;
+  GlobalUser? secondUser; // For shared rides
   AppService? service;
 
   GlobalDriverInfo? driver;
@@ -102,6 +103,7 @@ class RideModel {
     this.userReview,
     this.driverReview,
     this.coupon,
+    this.secondUser,
   });
 
   factory RideModel.fromJson(Map<String, dynamic> json) => RideModel(
@@ -145,6 +147,7 @@ class RideModel {
         userReview: json["user_review"] == null ? null : UserReview.fromJson(json["user_review"]),
         driverReview: json["driver_review"] == null ? null : UserReview.fromJson(json["driver_review"]),
         user: json["user"] == null ? null : GlobalUser.fromJson(json["user"]),
+        secondUser: json["second_user"] == null ? null : GlobalUser.fromJson(json["second_user"]),
         driver: json["driver"] == null ? null : GlobalDriverInfo.fromJson(json["driver"]),
         coupon: json["coupon"] == null ? null : CouponModel.fromJson(json["coupon"]),
       );
@@ -184,6 +187,7 @@ class RideModel {
         "bids_count": bidsCount,
         'user_review_count': userReviewCount,
         "user": user,
+        "second_user": secondUser,
         "service": service,
         "driver": driver,
         "driver_review": driverReview,

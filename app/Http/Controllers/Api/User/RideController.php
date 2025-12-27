@@ -242,8 +242,12 @@ class RideController extends Controller
 
     public function details($id)
     {
-        $ride = Ride::with(['bids', 'userReview', 'driver', 'service', 'driver.vehicle', 'driver.vehicle.model', 'driver.vehicle.color', 'driver.vehicle.year'])
-            ->where('user_id', auth()->id())
+        // For shared rides, user can be rider 1 (user_id) or rider 2 (second_user_id)
+        $ride = Ride::with(['bids', 'userReview', 'driver', 'service', 'driver.vehicle', 'driver.vehicle.model', 'driver.vehicle.color', 'driver.vehicle.year', 'secondUser'])
+            ->where(function($query) {
+                $query->where('user_id', auth()->id())
+                      ->orWhere('second_user_id', auth()->id());
+            })
             ->find($id);
 
         if (!$ride) {
@@ -251,7 +255,7 @@ class RideController extends Controller
             return apiResponse('not_found', 'error', $notify);
         }
 
-        $driverRideCount = Ride::where('driver_id', $ride->driver_id)->where('id', '!=', $ride->id)->where('status', Status::RIDE_COMPLETED)->count();
+        $driverRideCount = $ride->driver_id ? Ride::where('driver_id', $ride->driver_id)->where('id', '!=', $ride->id)->where('status', Status::RIDE_COMPLETED)->count() : 0;
         $notify[]        = 'Ride Details';
 
         return apiResponse('ride_details', 'success', $notify, [

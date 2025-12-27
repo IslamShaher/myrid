@@ -24,7 +24,13 @@ class SharedMatch {
   double? r2Solo;
   double? r1Fare;
   double? r2Fare;
+  double? r1SoloFare;
+  double? r2SoloFare;
   List<String>? sequence;
+  String? estimatedPickupTime;
+  String? estimatedPickupTimeReadable;
+  String? rideScheduledTime;
+  String? rideScheduledTimeReadable;
 
   SharedMatch(
       {this.ride,
@@ -35,7 +41,13 @@ class SharedMatch {
       this.r2Solo,
       this.r1Fare,
       this.r2Fare,
-      this.sequence});
+      this.r1SoloFare,
+      this.r2SoloFare,
+      this.sequence,
+      this.estimatedPickupTime,
+      this.estimatedPickupTimeReadable,
+      this.rideScheduledTime,
+      this.rideScheduledTimeReadable});
 
   SharedMatch.fromJson(Map<String, dynamic> json) {
     ride = json['ride'] != null ? RideInfo.fromJson(json['ride']) : null;
@@ -46,7 +58,13 @@ class SharedMatch {
     r2Solo = double.tryParse(json['r2_solo'].toString());
     r1Fare = double.tryParse(json['r1_fare'].toString());
     r2Fare = double.tryParse(json['r2_fare'].toString());
-    sequence = json['sequence'].cast<String>();
+    r1SoloFare = json['r1_solo_fare'] != null ? double.tryParse(json['r1_solo_fare'].toString()) : null;
+    r2SoloFare = json['r2_solo_fare'] != null ? double.tryParse(json['r2_solo_fare'].toString()) : null;
+    sequence = json['sequence'] != null ? (json['sequence'] as List).cast<String>() : null;
+    estimatedPickupTime = json['estimated_pickup_time']?.toString();
+    estimatedPickupTimeReadable = json['estimated_pickup_time_readable']?.toString();
+    rideScheduledTime = json['ride_scheduled_time']?.toString();
+    rideScheduledTimeReadable = json['ride_scheduled_time_readable']?.toString();
   }
 }
 
@@ -61,6 +79,9 @@ class RideInfo {
   double? pickupLng;
   double? destLat;
   double? destLng;
+  int? userId;
+  int? secondUserId;
+  List<String>? sharedRideSequence;
 
   RideInfo(
       {this.id,
@@ -72,7 +93,10 @@ class RideInfo {
       this.pickupLat,
       this.pickupLng,
       this.destLat,
-      this.destLng});
+      this.destLng,
+      this.userId,
+      this.secondUserId,
+      this.sharedRideSequence});
 
   RideInfo.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -85,5 +109,10 @@ class RideInfo {
     pickupLng = double.tryParse(json['pickup_longitude']?.toString() ?? '');
     destLat = double.tryParse(json['destination_latitude']?.toString() ?? '');
     destLng = double.tryParse(json['destination_longitude']?.toString() ?? '');
+    userId = json['user_id'] != null ? int.tryParse(json['user_id'].toString()) : null;
+    secondUserId = json['second_user_id'] != null ? int.tryParse(json['second_user_id'].toString()) : null;
+    if (json['shared_ride_sequence'] != null) {
+      sharedRideSequence = (json['shared_ride_sequence'] as List).cast<String>();
+    }
   }
 }

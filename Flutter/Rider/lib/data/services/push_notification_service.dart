@@ -42,6 +42,7 @@ class PushNotificationService {
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       printX('onMessageOpenedApp ${message.toMap()}');
+      _handleNotificationNavigation(message.data);
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
@@ -82,9 +83,19 @@ class PushNotificationService {
 
             printX('remarkNotification ${payload['for_app']}');
             printX('remarkNotification ${payload['ride_id']}');
-            String? remark = payload['for_app'];
+            
+            // Handle SHARED_RIDE_STARTED notification
+            if (payload['for_app'] == 'ride_details_screen' || payload.containsKey('ride_id')) {
+              String? rideId = payload['ride_id']?.toString();
+              if (rideId != null && rideId.isNotEmpty) {
+                getx.Get.toNamed('/ride_details_screen', arguments: rideId);
+                return;
+              }
+            }
+            
+            String? remark = payload['for_app'] ?? payload['app_click_action'];
 
-            if (remark != null && remark.isNotEmpty) {
+            if (remark != null && remark.isNotEmpty && remark.contains('-')) {
               String route = remark.split('-')[0];
               String id = remark.split('-')[1];
               //redirect any specific page
@@ -146,7 +157,45 @@ class PushNotificationService {
           payload: jsonEncode(message.data),
         );
       }
+      
+      // Also handle navigation for foreground notifications
+      _handleNotificationNavigation(message.data);
     });
+  }
+
+  void _handleNotificationNavigation(Map<String, dynamic> data) {
+    try {
+      printX('Handling notification navigation with data: $data');
+      
+      // Handle SHARED_RIDE_STARTED notification
+      if (data['for_app'] == 'ride_details_screen' || data.containsKey('ride_id')) {
+        String? rideId = data['ride_id']?.toString();
+        if (rideId != null && rideId.isNotEmpty) {
+          printX('Navigating to ride details screen with ride_id: $rideId');
+          getx.Get.toNamed('/ride_details_screen', arguments: rideId);
+          return;
+        }
+      }
+      
+      // Handle other notification types with for_app format
+      String? forApp = data['app_click_action']?.toString() ?? data['for_app']?.toString();
+      if (forApp != null && forApp.isNotEmpty) {
+        // If it contains a dash, it's in format "route-id"
+        if (forApp.contains('-')) {
+          List<String> parts = forApp.split('-');
+          if (parts.length >= 2) {
+            String route = parts[0];
+            String id = parts.sublist(1).join('-');
+            getx.Get.toNamed('/$route', arguments: id);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        printX('Error handling notification navigation: $e');
+      }
+    }
   }
 
   Future<void> enableIOSNotifications() async {

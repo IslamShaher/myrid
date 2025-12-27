@@ -36,7 +36,8 @@ class GoogleMapsService
             $response = Http::get($url, [
                 'origins' => "{$startLat},{$startLng}",
                 'destinations' => "{$endLat},{$endLng}",
-                'units' => 'driving',
+                'units' => 'metric',
+                'mode' => 'driving',
                 'key' => $this->apiKey,
             ]);
 

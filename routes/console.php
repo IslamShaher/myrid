@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('shuttle:start-scheduled')->everyMinute();
+Schedule::command('shared-ride:check-scheduled')->everyMinute();

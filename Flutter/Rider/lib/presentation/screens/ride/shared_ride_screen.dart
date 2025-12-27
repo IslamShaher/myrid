@@ -4,13 +4,13 @@ import 'package:ovorideuser/core/utils/dimensions.dart';
 import 'package:ovorideuser/core/utils/my_color.dart';
 import 'package:ovorideuser/core/utils/style.dart';
 import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart';
+import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/components/app-bar/custom_appbar.dart';
 import 'package:ovorideuser/presentation/components/buttons/rounded_button.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
 import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_route_widget.dart';
 import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
-import 'package:ovorideuser/presentation/screens/home/widgets/location_pickup_widget.dart'; // Reusing location picker widgets if possible
-// Or create a simple UI for inputs
+import 'package:intl/intl.dart';
 
 class SharedRideScreen extends StatefulWidget {
   const SharedRideScreen({super.key});
@@ -20,19 +20,59 @@ class SharedRideScreen extends StatefulWidget {
 }
 
 class _SharedRideScreenState extends State<SharedRideScreen> {
-  // Controllers moved to SharedRideController
-  
-  // In a real app, we would use the LocationPickerScreen result.
-  // For now, I'll simulate or use a simple form to call the controller.
-  // Or better, reuse the "LocationPickUpHomeWidget" style but for this screen.
-  
-  // Let's assume we navigate here with picked locations OR pick them here.
-  // The user requirement: "1- rider 1 enters start and end -> find matches"
+  bool isScheduled = false;
+  DateTime? selectedDate;
+  TimeOfDay? selectedTime;
   
   @override
   void initState() {
-    Get.put(SharedRideController(sharedRideRepo: Get.find())); // Ensure controller is loaded
+    // Create repo and controller directly since they're not in dependency injection
+    if (!Get.isRegistered<SharedRideController>()) {
+      Get.put(SharedRideController(sharedRideRepo: SharedRideRepo(apiClient: Get.find())));
+    }
+    // Default to today and current time
+    selectedDate = DateTime.now();
+    selectedTime = TimeOfDay.now();
     super.initState();
+  }
+  
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+  
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != selectedTime) {
+      setState(() {
+        selectedTime = picked;
+      });
+    }
+  }
+  
+  DateTime? _getScheduledDateTime() {
+    if (!isScheduled || selectedDate == null || selectedTime == null) {
+      return null;
+    }
+    return DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
   }
 
   @override
@@ -101,6 +141,107 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                       ),
                       spaceDown(Dimensions.space15),
                       
+                      // Schedule Options
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: MyColor.neutral100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: MyColor.neutral300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Radio<bool>(
+                                  value: false,
+                                  groupValue: isScheduled,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      isScheduled = false;
+                                    });
+                                  },
+                                  activeColor: MyColor.getPrimaryColor(),
+                                ),
+                                Text("Now", style: regularDefault),
+                                SizedBox(width: 20),
+                                Radio<bool>(
+                                  value: true,
+                                  groupValue: isScheduled,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      isScheduled = true;
+                                    });
+                                  },
+                                  activeColor: MyColor.getPrimaryColor(),
+                                ),
+                                Text("Schedule", style: regularDefault),
+                              ],
+                            ),
+                            if (isScheduled) ...[
+                              spaceDown(10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => _selectDate(context),
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                                        decoration: BoxDecoration(
+                                          color: MyColor.colorWhite,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: MyColor.neutral300),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.calendar_today, size: 20, color: MyColor.getPrimaryColor()),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              selectedDate != null 
+                                                ? DateFormat('MMM dd, yyyy').format(selectedDate!)
+                                                : "Select Date",
+                                              style: regularDefault,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => _selectTime(context),
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                                        decoration: BoxDecoration(
+                                          color: MyColor.colorWhite,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: MyColor.neutral300),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.access_time, size: 20, color: MyColor.getPrimaryColor()),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              selectedTime != null
+                                                ? selectedTime!.format(context)
+                                                : "Select Time",
+                                              style: regularDefault,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      spaceDown(Dimensions.space15),
+                      
                       RoundedButton(
                         text: "Match Ride",
                         press: () {
@@ -113,6 +254,7 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                            print("Coords: $sLat, $sLng -> $eLat, $eLng");
 
                            if (sLat != null && sLng != null && eLat != null && eLng != null) {
+                             DateTime? scheduledDateTime = _getScheduledDateTime();
                              controller.matchSharedRide(
                                startLat: sLat,
                                startLng: sLng,
@@ -120,6 +262,7 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                                endLng: eLng,
                                pickupLocation: "Test Source",
                                destination: "Test Destination",
+                               scheduledTime: scheduledDateTime,
                              );
                            } else {
                              print("Setting dummy values...");
@@ -165,38 +308,56 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                                ListTile(
                                  contentPadding: EdgeInsets.zero,
                                  title: Text("Overhead: ${match.totalOverhead?.toStringAsFixed(1)} min", style: boldDefault),
-                                 // Now assumes Match model has 'r2Amount' or we grab it from map
-                                 // Note: Model update needed to parse r2_fare from JSON.
-                                 // For now using the logic that backend sends it.
-                                 subtitle: Text("Est. Fare: \$${match.r2Fare} (Savings: \$${(match.r2Solo! * 2.0/120 * 2.0 - match.r2Fare!).toStringAsFixed(1)})", maxLines: 1, overflow: TextOverflow.ellipsis),
+                                 subtitle: Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                     Text("Est. Fare: \$${match.r2Fare} ${match.r2SoloFare != null ? '(Savings: \$${(match.r2SoloFare! - match.r2Fare!).toStringAsFixed(1)})' : ''}", maxLines: 1, overflow: TextOverflow.ellipsis),
+                                     if (match.estimatedPickupTimeReadable != null) ...[
+                                       SizedBox(height: 4),
+                                       Row(
+                                         children: [
+                                           Icon(Icons.schedule, size: 14, color: MyColor.getPrimaryColor()),
+                                           SizedBox(width: 4),
+                                           Text(
+                                             "Est. Pickup: ${match.estimatedPickupTimeReadable}",
+                                             style: regularSmall.copyWith(color: MyColor.getPrimaryColor()),
+                                           ),
+                                         ],
+                                       ),
+                                     ],
+                                   ],
+                                 ),
                                  trailing: ElevatedButton(
                                    child: const Text("Join"),
                                    onPressed: () {
-                                     controller.joinRide(match.ride!.id.toString());
+                                     double? sLat = double.tryParse(controller.startLatController.text);
+                                     double? sLng = double.tryParse(controller.startLngController.text);
+                                     double? eLat = double.tryParse(controller.endLatController.text);
+                                     double? eLng = double.tryParse(controller.endLngController.text);
+                                     controller.joinRide(
+                                       match.ride!.id.toString(),
+                                       startLat: sLat,
+                                       startLng: sLng,
+                                       endLat: eLat,
+                                       endLng: eLng,
+                                     );
                                    },
                                    style: ElevatedButton.styleFrom(backgroundColor: MyColor.primaryColor, foregroundColor: Colors.white),
                                  ),
                                ),
                                Divider(),
                                // Route Visualization
-                               if (index < 5 && match.ride?.pickupLat != null)
+                               if (match.ride?.pickupLat != null)
                                   SharedRideMapWidget(
                                     startLat1: match.ride!.pickupLat!,
                                     startLng1: match.ride!.pickupLng!,
                                     endLat1: match.ride!.destLat!,
                                     endLng1: match.ride!.destLng!,
-                                    // Current user coords passed from input/controller
-                                    // Wait, we need the stored input coords. 
-                                    // I'll grab them from the controller temporarily or pass them.
-                                    // Controller.startLat is not public? 
-                                    // Let's assume for now we use the ones from the match creation request 
-                                    // (which aren't in the match object yet, but were sent).
-                                    // Quick fix: Use dummy or pass via controller.
-                                    // Using 0,0 placeholder if not available, but should be fixed.
                                     startLat2: double.tryParse(controller.startLatController.text) ?? 0,
                                     startLng2: double.tryParse(controller.startLngController.text) ?? 0,
                                     endLat2: double.tryParse(controller.endLatController.text) ?? 0,
                                     endLng2: double.tryParse(controller.endLngController.text) ?? 0,
+                                    sequence: match.sequence,
                                   )
                                else
                                   SharedRideRouteWidget(sequence: match.sequence ?? [])
