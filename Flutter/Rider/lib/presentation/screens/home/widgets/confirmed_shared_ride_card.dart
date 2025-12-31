@@ -17,8 +17,12 @@ class ConfirmedSharedRideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final otherUser = ride['other_user'] as Map<String, dynamic>?;
     final isRider1 = ride['is_rider1'] as bool? ?? false;
-    final userFare = isRider1 ? (ride['r1_fare'] as num?) : (ride['r2_fare'] as num?);
-    final totalOverhead = ride['total_overhead'] as num?;
+    final userFare = isRider1 
+        ? (ride['r1_fare'] is num ? ride['r1_fare'] as num : double.tryParse(ride['r1_fare']?.toString() ?? ''))
+        : (ride['r2_fare'] is num ? ride['r2_fare'] as num : double.tryParse(ride['r2_fare']?.toString() ?? ''));
+    final totalOverhead = ride['total_overhead'] is num 
+        ? ride['total_overhead'] as num 
+        : double.tryParse(ride['total_overhead']?.toString() ?? '');
     final estimatedPickupTime = ride['estimated_pickup_time_readable'] as String?;
     final sequence = ride['shared_ride_sequence'] as List<dynamic>?;
     
@@ -87,15 +91,32 @@ class ConfirmedSharedRideCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
                       child: SharedRideMapWidget(
-                        startLat1: (ride['pickup_latitude'] as num).toDouble(),
-                        startLng1: (ride['pickup_longitude'] as num).toDouble(),
-                        endLat1: (ride['destination_latitude'] as num).toDouble(),
-                        endLng1: (ride['destination_longitude'] as num).toDouble(),
-                        startLat2: (ride['second_pickup_latitude'] as num).toDouble(),
-                        startLng2: (ride['second_pickup_longitude'] as num).toDouble(),
-                        endLat2: (ride['second_destination_latitude'] as num).toDouble(),
-                        endLng2: (ride['second_destination_longitude'] as num).toDouble(),
+                        startLat1: ride['pickup_latitude'] is num 
+                            ? (ride['pickup_latitude'] as num).toDouble()
+                            : (double.tryParse(ride['pickup_latitude']?.toString() ?? '') ?? 0.0),
+                        startLng1: ride['pickup_longitude'] is num 
+                            ? (ride['pickup_longitude'] as num).toDouble()
+                            : (double.tryParse(ride['pickup_longitude']?.toString() ?? '') ?? 0.0),
+                        endLat1: ride['destination_latitude'] is num 
+                            ? (ride['destination_latitude'] as num).toDouble()
+                            : (double.tryParse(ride['destination_latitude']?.toString() ?? '') ?? 0.0),
+                        endLng1: ride['destination_longitude'] is num 
+                            ? (ride['destination_longitude'] as num).toDouble()
+                            : (double.tryParse(ride['destination_longitude']?.toString() ?? '') ?? 0.0),
+                        startLat2: ride['second_pickup_latitude'] is num 
+                            ? (ride['second_pickup_latitude'] as num).toDouble()
+                            : (double.tryParse(ride['second_pickup_latitude']?.toString() ?? '') ?? 0.0),
+                        startLng2: ride['second_pickup_longitude'] is num 
+                            ? (ride['second_pickup_longitude'] as num).toDouble()
+                            : (double.tryParse(ride['second_pickup_longitude']?.toString() ?? '') ?? 0.0),
+                        endLat2: ride['second_destination_latitude'] is num 
+                            ? (ride['second_destination_latitude'] as num).toDouble()
+                            : (double.tryParse(ride['second_destination_latitude']?.toString() ?? '') ?? 0.0),
+                        endLng2: ride['second_destination_longitude'] is num 
+                            ? (ride['second_destination_longitude'] as num).toDouble()
+                            : (double.tryParse(ride['second_destination_longitude']?.toString() ?? '') ?? 0.0),
                         sequence: sequence?.map((e) => e.toString()).toList(),
+                        directionsData: ride['directions_data'] as Map<String, dynamic>?,
                       ),
                     ),
                   ),

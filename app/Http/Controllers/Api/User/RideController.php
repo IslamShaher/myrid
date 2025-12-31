@@ -264,6 +264,7 @@ class RideController extends Controller
             'brand_image_path'   => getFilePath('brand'),
             'user_image_path'    => getFilePath('user'),
             'driver_image_path'  => getFilePath('driver'),
+            'ride_image_path'    => getFilePath('ride'),
             'driver_total_ride'  => $driverRideCount
         ]);
     }

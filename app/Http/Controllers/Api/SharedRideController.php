@@ -122,6 +122,24 @@ class SharedRideController extends Controller
                                 $matchData['estimated_pickup_time_readable'] = $estimatedPickupTime->format('H:i');
                             }
                         }
+                        
+                        // Get directions for the complete route with all 4 points
+                        $waypoints = [];
+                        $pointMap = [
+                            'S1' => ['lat' => $ride->pickup_latitude, 'lng' => $ride->pickup_longitude],
+                            'E1' => ['lat' => $ride->destination_latitude, 'lng' => $ride->destination_longitude],
+                            'S2' => ['lat' => $startLat, 'lng' => $startLng],
+                            'E2' => ['lat' => $endLat, 'lng' => $endLng],
+                        ];
+                        
+                        foreach ($sequence as $code) {
+                            $waypoints[] = $pointMap[$code];
+                        }
+                        
+                        $directionsData = $this->googleMapsService->getDirectionsWithWaypoints($waypoints);
+                        if ($directionsData) {
+                            $matchData['directions'] = $directionsData;
+                        }
                     }
                     
                     // Also include ride scheduled time
@@ -384,6 +402,24 @@ class SharedRideController extends Controller
                 $ride->second_destination_latitude = $u2EndLat;
                 $ride->second_destination_longitude = $u2EndLng;
                 $ride->shared_ride_sequence = json_encode($matchData['sequence']);
+                
+                // Get and save directions data for the complete route
+                $waypoints = [];
+                $pointMap = [
+                    'S1' => ['lat' => $ride->pickup_latitude, 'lng' => $ride->pickup_longitude],
+                    'E1' => ['lat' => $ride->destination_latitude, 'lng' => $ride->destination_longitude],
+                    'S2' => ['lat' => $u2StartLat, 'lng' => $u2StartLng],
+                    'E2' => ['lat' => $u2EndLat, 'lng' => $u2EndLng],
+                ];
+                
+                foreach ($matchData['sequence'] as $code) {
+                    $waypoints[] = $pointMap[$code];
+                }
+                
+                $directionsData = $this->googleMapsService->getDirectionsWithWaypoints($waypoints);
+                if ($directionsData) {
+                    $ride->directions_data = json_encode($directionsData);
+                }
             }
         }
         
@@ -393,12 +429,22 @@ class SharedRideController extends Controller
         $rider2 = \App\Models\User::find(auth()->id());
         $rider1 = \App\Models\User::find($ride->user_id);
         
+        // Prepare rider name and rating for notifications
+        $riderName = 'A rider';
+        $riderRating = '0.0';
+        
+        if ($rider2) {
+            $riderName = trim(($rider2->firstname ?? '') . ' ' . ($rider2->lastname ?? ''));
+            if (empty($riderName)) {
+                $riderName = $rider2->username ?? 'A rider';
+            }
+            $riderRating = number_format($rider2->avg_rating ?? 0, 1);
+        }
+        
         // Notify Rider 1 with push notification including Rider 2 details
         // Note: For push notification to work, DEFAULT template must exist in notification_templates table
         // with push_status enabled. Otherwise, only Pusher event will be sent.
-        if ($rider2 && $rider1) {
-            $riderName = $rider2->firstname . ' ' . $rider2->lastname;
-            $riderRating = number_format($rider2->avg_rating ?? 0, 1);
+        if ($rider1) {
             $shortCodes = [
                 'subject' => 'New Rider Joined Your Shared Ride',
                 'message' => "{$riderName} (Rating: {$riderRating}) has joined your shared ride.",
@@ -411,12 +457,22 @@ class SharedRideController extends Controller
             }
         }
         
-        // Also send Pusher event for real-time update
-        event(new \App\Events\Ride("rider-user-{$ride->user_id}", "RIDER_JOINED", ['ride' => $ride->load('secondUser')]));
+        // Also send Pusher events for real-time update
+        // Send to Rider 1's user channel
+        event(new \App\Events\Ride("rider-user-{$ride->user_id}", "RIDER_JOINED", [
+            'ride' => $ride->load(['user', 'secondUser']),
+            'message' => "{$riderName} has joined your ride!"
+        ]));
+        
+        // Also send to the ride channel itself
+        event(new \App\Events\Ride("ride-{$ride->id}", "RIDER_JOINED", [
+            'ride' => $ride->load(['user', 'secondUser']),
+            'message' => "{$riderName} has joined your ride!"
+        ]));
 
         return response()->json([
             'success' => true,
-            'message' => 'You have joined the ride.',
+            'message' => ['You have joined the ride.'],
             'ride' => $ride->load('secondUser')
         ]);
     }
@@ -443,12 +499,12 @@ class SharedRideController extends Controller
         
         if ($action == 'start_driving') {
             if ($ride->user_id != auth()->id()) return response()->json(['success'=>false, 'message'=>'Only Rider 1 can start driving'], 403);
-            // event(new \App\Events\Ride("rider-user-{$ride->second_user_id}", "RIDE_STARTED_DRIVING", ['ride' => $ride]));
+            event(new \App\Events\Ride("rider-user-{$ride->second_user_id}", "RIDE_STARTED_DRIVING", ['ride' => $ride]));
             $message = "Notified Rider 2 that you started driving.";
         }
         elseif ($action == 'arrived_at_pickup') {
             if ($ride->user_id != auth()->id()) return response()->json(['success'=>false, 'message'=>'Only Rider 1 can mark arrival'], 403);
-            // event(new \App\Events\Ride("rider-user-{$ride->second_user_id}", "RIDER_ARRIVED_PICKUP", ['ride' => $ride]));
+            event(new \App\Events\Ride("rider-user-{$ride->second_user_id}", "RIDER_ARRIVED_PICKUP", ['ride' => $ride]));
             $message = "Notified Rider 2 that you arrived.";
         }
         elseif ($action == 'confirm_pickup') {
@@ -548,7 +604,7 @@ class SharedRideController extends Controller
         
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'message' => [$message], // Changed to array to match Flutter AuthorizationResponseModel
             'ride' => $ride,
             'is_scheduled' => $ride->is_scheduled,
             'should_return_to_home' => $ride->is_scheduled && $ride->scheduled_time > Carbon::now() && !$ride->second_user_id
@@ -591,6 +647,37 @@ class SharedRideController extends Controller
                         );
                         if ($matchData && isset($matchData['sequence'])) {
                             $responseData['shared_ride_sequence'] = $matchData['sequence'];
+                        }
+                    }
+                    
+                    // Decode and include directions_data if it exists
+                    if ($ride->directions_data) {
+                        $responseData['directions_data'] = json_decode($ride->directions_data, true);
+                    } else {
+                        // If directions_data doesn't exist, generate it now
+                        // This ensures both devices have directions when ride starts
+                        $waypoints = [];
+                        $pointMap = [
+                            'S1' => ['lat' => $ride->pickup_latitude, 'lng' => $ride->pickup_longitude],
+                            'E1' => ['lat' => $ride->destination_latitude, 'lng' => $ride->destination_longitude],
+                            'S2' => ['lat' => $ride->second_pickup_latitude, 'lng' => $ride->second_pickup_longitude],
+                            'E2' => ['lat' => $ride->second_destination_latitude, 'lng' => $ride->second_destination_longitude],
+                        ];
+                        
+                        $sequence = $responseData['shared_ride_sequence'] ?? ['S1', 'S2', 'E1', 'E2'];
+                        foreach ($sequence as $code) {
+                            if (isset($pointMap[$code])) {
+                                $waypoints[] = $pointMap[$code];
+                            }
+                        }
+                        
+                        if (count($waypoints) == 4) {
+                            $directionsData = $this->googleMapsService->getDirectionsWithWaypoints($waypoints);
+                            if ($directionsData) {
+                                $ride->directions_data = json_encode($directionsData);
+                                $ride->save();
+                                $responseData['directions_data'] = $directionsData;
+                            }
                         }
                     }
                 }
@@ -771,6 +858,7 @@ class SharedRideController extends Controller
                     'second_destination_latitude' => $ride->second_destination_latitude,
                     'second_destination_longitude' => $ride->second_destination_longitude,
                     'shared_ride_sequence' => json_decode($ride->shared_ride_sequence, true),
+                    'directions_data' => $ride->directions_data ? json_decode($ride->directions_data, true) : null,
                     'is_rider1' => $isRider1,
                     'estimated_pickup_time' => $estimatedPickupTime ? $estimatedPickupTime->toIso8601String() : null,
                     'estimated_pickup_time_readable' => $estimatedPickupTimeReadable,
@@ -800,6 +888,451 @@ class SharedRideController extends Controller
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update live location for shared ride user
+     * Broadcasts location to the other user in the shared ride
+     */
+    public function updateLiveLocation(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'latitude'  => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $userId = auth()->id();
+
+        // Find active shared ride where user is either rider 1 or rider 2
+        $ride = Ride::where(function($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('second_user_id', $userId);
+            })
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+            ->whereIn('status', [\App\Constants\Status::RIDE_ACTIVE, \App\Constants\Status::RIDE_RUNNING])
+            ->first();
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active shared ride found'
+            ], 404);
+        }
+
+        // Determine the other user ID
+        $otherUserId = null;
+        if ($ride->user_id == $userId) {
+            $otherUserId = $ride->second_user_id;
+        } else {
+            $otherUserId = $ride->user_id;
+        }
+
+        // Broadcast location to the other user if they exist
+        if ($otherUserId) {
+            event(new \App\Events\Ride("rider-user-$otherUserId", 'LIVE_LOCATION', [
+                'ride'      => $ride,
+                'latitude'  => $request->latitude,
+                'longitude' => $request->longitude,
+                'userId'    => $userId, // Include sender's user_id to identify which user's location
+            ]));
+        }
+        
+        // Also broadcast to sender's channel for consistency (optional)
+        event(new \App\Events\Ride("rider-user-$userId", 'LIVE_LOCATION', [
+            'ride'      => $ride,
+            'latitude'  => $request->latitude,
+            'longitude' => $request->longitude,
+            'userId'    => $userId,
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'message' => ['Location updated successfully']
+        ]);
+    }
+
+    /**
+     * Upload fare screenshot and calculate fares for both users
+     */
+    public function uploadFareScreenshot(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ride_id' => 'required|integer|exists:rides,id',
+            'fare_amount' => 'required|numeric|min:0',
+            'fare_image' => ['required', 'image', new \App\Rules\FileTypeValidate(['jpg', 'jpeg', 'png'])],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $userId = auth()->id();
+        $ride = Ride::where(function($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('second_user_id', $userId);
+            })
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+            ->where('id', $request->ride_id)
+            ->first();
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found or you do not have permission'
+            ], 404);
+        }
+
+        // Check if user is the one with first pickup
+        $sequence = json_decode($ride->shared_ride_sequence, true);
+        if (!$sequence || count($sequence) < 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid ride sequence'
+            ], 400);
+        }
+
+        $firstPickup = $sequence[0];
+        $isRider1 = $ride->user_id == $userId;
+        $canUpload = ($firstPickup == 'S1' && $isRider1) || ($firstPickup == 'S2' && !$isRider1);
+
+        if (!$canUpload) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only the user with the first pickup can upload the fare screenshot'
+            ], 403);
+        }
+
+        // Upload image
+        try {
+            $imagePath = fileUploader($request->fare_image, getFilePath('ride'), null, null);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload image: ' . $e->getMessage()
+            ], 500);
+        }
+
+        $totalFare = floatval($request->fare_amount);
+        
+        // Calculate fares for both users based on overhead calculation
+        $rider1Fare = null;
+        $rider2Fare = null;
+        
+        if ($ride->second_user_id && 
+            $ride->second_pickup_latitude && 
+            $ride->second_pickup_longitude &&
+            $ride->second_destination_latitude &&
+            $ride->second_destination_longitude) {
+            
+            // Recalculate overhead to get fare distribution
+            $matchData = $this->calculateOverhead(
+                $ride,
+                $ride->second_pickup_latitude,
+                $ride->second_pickup_longitude,
+                $ride->second_destination_latitude,
+                $ride->second_destination_longitude
+            );
+            
+            if ($matchData && isset($matchData['r1_fare']) && isset($matchData['r2_fare'])) {
+                // Use the ratio from overhead calculation
+                $r1Ratio = $matchData['r1_fare'] / ($matchData['r1_fare'] + $matchData['r2_fare']);
+                $r2Ratio = $matchData['r2_fare'] / ($matchData['r1_fare'] + $matchData['r2_fare']);
+                
+                $rider1Fare = round($totalFare * $r1Ratio, 2);
+                $rider2Fare = round($totalFare * $r2Ratio, 2);
+            } else {
+                // Fallback: split 50/50
+                $rider1Fare = round($totalFare / 2, 2);
+                $rider2Fare = round($totalFare / 2, 2);
+            }
+        } else {
+            // If no second user yet, rider 1 pays full amount
+            $rider1Fare = $totalFare;
+            $rider2Fare = 0;
+        }
+
+        // Update ride with fare information
+        $ride->fare_screenshot = $imagePath;
+        $ride->fare_amount_text = $totalFare;
+        $ride->rider1_fare = $rider1Fare;
+        $ride->rider2_fare = $rider2Fare;
+        $ride->save();
+
+        // Notify the other user
+        $otherUserId = $isRider1 ? $ride->second_user_id : $ride->user_id;
+        if ($otherUserId) {
+            event(new \App\Events\Ride("rider-user-$otherUserId", "FARE_SCREENSHOT_UPLOADED", [
+                'ride' => $ride->load('user', 'secondUser'),
+                'rider1_fare' => $rider1Fare,
+                'rider2_fare' => $rider2Fare,
+            ]));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fare screenshot uploaded successfully',
+            'ride' => $ride->load('user', 'secondUser'),
+            'rider1_fare' => $rider1Fare,
+            'rider2_fare' => $rider2Fare,
+        ]);
+    }
+
+    /**
+     * End shared ride (for user with last dropoff)
+     */
+    public function endSharedRide(Request $request, $rideId)
+    {
+        $userId = auth()->id();
+        $ride = Ride::where('id', $rideId)
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+            ->where(function($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('second_user_id', $userId);
+            })
+            ->first();
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found or you do not have permission'
+            ], 404);
+        }
+
+        // Check if ride is running
+        if ($ride->status != \App\Constants\Status::RIDE_RUNNING) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride is not running'
+            ], 400);
+        }
+
+        // Determine who has last dropoff
+        $sequence = json_decode($ride->shared_ride_sequence, true);
+        if (!$sequence || count($sequence) < 4) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid ride sequence'
+            ], 400);
+        }
+
+        $lastDropoff = $sequence[3]; // E1 or E2
+        $isRider1 = $ride->user_id == $userId;
+        $canEndRide = ($lastDropoff == 'E1' && $isRider1) || ($lastDropoff == 'E2' && !$isRider1);
+
+        if (!$canEndRide) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only the user with the last dropoff can end the ride'
+            ], 403);
+        }
+
+        // End the ride
+        $ride->status = \App\Constants\Status::RIDE_COMPLETED;
+        $ride->end_time = now();
+        if ($ride->start_time) {
+            $duration = \Carbon\Carbon::parse($ride->start_time)->diffInMinutes(now());
+            $ride->duration = $duration . " Min";
+        }
+        $ride->save();
+
+        // Notify the other user
+        $otherUserId = $isRider1 ? $ride->second_user_id : $ride->user_id;
+        if ($otherUserId) {
+            event(new \App\Events\Ride("rider-user-$otherUserId", "SHARED_RIDE_ENDED", [
+                'ride' => $ride->load('user', 'secondUser'),
+            ]));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ride ended successfully. You can now rate the other user.',
+            'ride' => $ride->load('user', 'secondUser')
+        ]);
+    }
+
+    /**
+     * Mark "I arrived" (for user with first dropoff)
+     */
+    public function markArrived(Request $request, $rideId)
+    {
+        $userId = auth()->id();
+        $ride = Ride::where('id', $rideId)
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+            ->where(function($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('second_user_id', $userId);
+            })
+            ->first();
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found or you do not have permission'
+            ], 404);
+        }
+
+        // Check if ride is running
+        if ($ride->status != \App\Constants\Status::RIDE_RUNNING) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride is not running'
+            ], 400);
+        }
+
+        // Determine who has first dropoff
+        $sequence = json_decode($ride->shared_ride_sequence, true);
+        if (!$sequence || count($sequence) < 4) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid ride sequence'
+            ], 400);
+        }
+
+        // Find first dropoff (E1 or E2)
+        $firstDropoff = null;
+        foreach ($sequence as $index => $code) {
+            if ($code == 'E1' || $code == 'E2') {
+                $firstDropoff = $code;
+                break;
+            }
+        }
+
+        if (!$firstDropoff) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid ride sequence'
+            ], 400);
+        }
+
+        $isRider1 = $ride->user_id == $userId;
+        $canMarkArrived = ($firstDropoff == 'E1' && $isRider1) || ($firstDropoff == 'E2' && !$isRider1);
+
+        if (!$canMarkArrived) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only the user with the first dropoff can mark arrival'
+            ], 403);
+        }
+
+        // Mark user as arrived (we can add a field for this, or just notify)
+        // For now, we'll just notify the other user
+        $otherUserId = $isRider1 ? $ride->second_user_id : $ride->user_id;
+        if ($otherUserId) {
+            event(new \App\Events\Ride("rider-user-$otherUserId", "RIDER_ARRIVED_DESTINATION", [
+                'ride' => $ride->load('user', 'secondUser'),
+                'arrived_user_id' => $userId,
+            ]));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'You have marked your arrival. You can now rate the other user.',
+            'ride' => $ride->load('user', 'secondUser')
+        ]);
+    }
+
+    /**
+     * Rate the other user in a shared ride
+     */
+    public function rateOtherUser(Request $request, $rideId)
+    {
+        $validator = Validator::make($request->all(), [
+            'rating' => 'required|integer|min:1|max:5',
+            'review' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+
+        $userId = auth()->id();
+        $ride = Ride::where('id', $rideId)
+            ->where('ride_type', \App\Constants\Status::SHARED_RIDE)
+            ->where(function($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('second_user_id', $userId);
+            })
+            ->first();
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found or you do not have permission'
+            ], 404);
+        }
+
+        // Determine the other user
+        $otherUserId = null;
+        if ($ride->user_id == $userId) {
+            $otherUserId = $ride->second_user_id;
+        } else {
+            $otherUserId = $ride->user_id;
+        }
+
+        if (!$otherUserId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No other user found in this ride'
+            ], 400);
+        }
+
+        // Check if user already reviewed the other user for this ride
+        $existsReview = \App\Models\Review::where('ride_id', $ride->id)
+            ->where('user_id', $userId)
+            ->where('reviewed_user_id', $otherUserId)
+            ->exists();
+
+        if ($existsReview) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already reviewed this user for this ride'
+            ], 400);
+        }
+
+        // Create review
+        $review = new \App\Models\Review();
+        $review->ride_id = $ride->id;
+        $review->user_id = $userId; // Reviewer
+        $review->driver_id = 0; // Not a driver review
+        $review->reviewed_user_id = $otherUserId; // The user being reviewed
+        $review->rating = $request->rating;
+        $review->review = $request->review;
+        $review->save();
+
+        // Update the reviewed user's rating
+        $reviewedUser = \App\Models\User::find($otherUserId);
+        if ($reviewedUser) {
+            $userReviews = \App\Models\Review::where('reviewed_user_id', $otherUserId)
+                ->where('driver_id', 0) // Only user-to-user reviews
+                ->get();
+            
+            $reviewedUser->avg_rating = $userReviews->avg('rating');
+            $reviewedUser->total_reviews = $userReviews->count();
+            $reviewedUser->save();
+        }
+
+        // Notify the other user
+        event(new \App\Events\Ride("rider-user-$otherUserId", "RATED_BY_OTHER_USER", [
+            'ride' => $ride->load('user', 'secondUser'),
+            'rating' => $request->rating,
+            'review' => $request->review,
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Review submitted successfully',
+            'review' => $review
+        ]);
     }
 }
 

@@ -6,10 +6,8 @@ import 'package:ovorideuser/core/utils/my_color.dart';
 import 'package:ovorideuser/core/utils/style.dart';
 import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
-import 'package:ovorideuser/presentation/screens/ride/shared_ride_screen.dart';
-
+import 'package:ovorideuser/presentation/screens/ride/shared_ride_unified_screen.dart';
 import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
-import 'package:ovorideuser/presentation/screens/ride/shared_ride_active_screen.dart';
 
 class SharedRideHomeWidget extends StatelessWidget {
   const SharedRideHomeWidget({super.key});
@@ -46,7 +44,7 @@ class SharedRideHomeWidget extends StatelessWidget {
                  ),
                  spaceDown(10),
                  InkWell(
-                   onTap: () => Get.to(() => const SharedRideScreen()),
+                   onTap: () => Get.to(() => const SharedRideUnifiedScreen()),
                    child: Container(
                      width: double.infinity,
                      padding: const EdgeInsets.symmetric(vertical: 12),
@@ -68,17 +66,19 @@ class SharedRideHomeWidget extends StatelessWidget {
                    ],
                  ),
                  spaceDown(10),
-                 // Map Preview - Safely parse coordinates
+                 // Map Preview - Show ALL 4 points if second user coordinates exist
                  if (ride.pickupLat != null && ride.pickupLng != null)
                    SharedRideMapWidget(
                       startLat1: ride.pickupLat ?? 0, 
                       startLng1: ride.pickupLng ?? 0, 
                       endLat1: ride.destLat ?? 0, 
                       endLng1: ride.destLng ?? 0, 
-                      startLat2: ride.pickupLat ?? 0, 
-                      startLng2: ride.pickupLng ?? 0, 
-                      endLat2: ride.destLat ?? 0, 
-                      endLng2: ride.destLng ?? 0 
+                      startLat2: ride.secondPickupLat ?? ride.pickupLat ?? 0, 
+                      startLng2: ride.secondPickupLng ?? ride.pickupLng ?? 0, 
+                      endLat2: ride.secondDestLat ?? ride.destLat ?? 0, 
+                      endLng2: ride.secondDestLng ?? ride.destLng ?? 0,
+                      sequence: ride.sharedRideSequence,
+                      directionsData: null,
                    ),
                  spaceDown(10),
                  Text("${ride.pickupLocation ?? ''} -> ${ride.destination ?? ''}", maxLines: 1),
@@ -86,7 +86,7 @@ class SharedRideHomeWidget extends StatelessWidget {
                  InkWell(
                    onTap: () {
                      if (ride.id != null) {
-                       Get.to(() => SharedRideActiveScreen(rideId: ride.id.toString()));
+                       Get.to(() => SharedRideUnifiedScreen(rideId: ride.id.toString()));
                      }
                    },
                    child: Text("View Details >", style: boldDefault.copyWith(color: MyColor.primaryColor)),

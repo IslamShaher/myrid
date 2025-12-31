@@ -358,6 +358,7 @@ class _SharedRideScreenState extends State<SharedRideScreen> {
                                     endLat2: double.tryParse(controller.endLatController.text) ?? 0,
                                     endLng2: double.tryParse(controller.endLngController.text) ?? 0,
                                     sequence: match.sequence,
+                                    directionsData: match.directions,
                                   )
                                else
                                   SharedRideRouteWidget(sequence: match.sequence ?? [])

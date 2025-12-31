@@ -42,3 +42,5 @@ Write-Host ""
 Write-Host "[SUCCESS] Emulator starting. Wait for it to boot, then check with: adb devices" -ForegroundColor Green
 
 
+
+

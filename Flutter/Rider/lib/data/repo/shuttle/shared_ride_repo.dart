@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:ovorideuser/core/utils/method.dart';
 import 'package:ovorideuser/core/utils/url_container.dart';
 import 'package:ovorideuser/data/services/api_client.dart';
@@ -114,6 +115,81 @@ class SharedRideRepo {
       "${UrlContainer.baseUrl}shuttle/confirmed-shared-rides",
       Method.getMethod,
       {},
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> updateLiveLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/shared-ride/live-location",
+      Method.postMethod,
+      {
+        "latitude": latitude.toString(),
+        "longitude": longitude.toString(),
+      },
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> uploadFareScreenshot({
+    required String rideId,
+    required String fareAmount,
+    required File fareImage,
+  }) async {
+    Map<String, dynamic> params = {
+      "fare_amount": fareAmount,
+    };
+    
+    Map<String, File> files = {
+      "fare_image": fareImage,
+    };
+    
+    return await apiClient.multipartRequest(
+      "${UrlContainer.baseUrl}shuttle/shared-ride/upload-fare-screenshot/$rideId",
+      Method.postMethod,
+      params,
+      files: files,
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> endSharedRide({
+    required String rideId,
+  }) async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/shared-ride/end-ride/$rideId",
+      Method.postMethod,
+      {},
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> markArrived({
+    required String rideId,
+  }) async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/shared-ride/mark-arrived/$rideId",
+      Method.postMethod,
+      {},
+      passHeader: true,
+    );
+  }
+
+  Future<ResponseModel> rateOtherUser({
+    required String rideId,
+    required int rating,
+    required String review,
+  }) async {
+    return await apiClient.request(
+      "${UrlContainer.baseUrl}shuttle/shared-ride/rate-user/$rideId",
+      Method.postMethod,
+      {
+        "rating": rating.toString(),
+        "review": review,
+      },
       passHeader: true,
     );
   }

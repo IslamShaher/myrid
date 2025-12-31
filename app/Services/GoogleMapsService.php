@@ -72,6 +72,94 @@ class GoogleMapsService
         }
     }
 
+    /**
+     * Get directions with waypoints (for shared rides with multiple stops)
+     *
+     * @param array $waypoints Array of ['lat' => float, 'lng' => float]
+     * @return array|null Returns polyline encoded string and route data or null on failure
+     */
+    public function getDirectionsWithWaypoints($waypoints)
+    {
+        if (empty($this->apiKey) || count($waypoints) < 2) {
+            return null;
+        }
+
+        $url = "{$this->baseUrl}/directions/json";
+
+        try {
+            // Build waypoints string (exclude origin and destination)
+            $waypointsStr = '';
+            if (count($waypoints) > 2) {
+                $middlePoints = array_slice($waypoints, 1, -1);
+                $waypointsStr = implode('|', array_map(function($point) {
+                    return "{$point['lat']},{$point['lng']}";
+                }, $middlePoints));
+            }
+
+            $params = [
+                'origin' => "{$waypoints[0]['lat']},{$waypoints[0]['lng']}",
+                'destination' => "{$waypoints[count($waypoints)-1]['lat']},{$waypoints[count($waypoints)-1]['lng']}",
+                'mode' => 'driving',
+                'key' => $this->apiKey,
+            ];
+
+            if (!empty($waypointsStr)) {
+                $params['waypoints'] = $waypointsStr;
+            }
+
+            $response = Http::get($url, $params);
+
+            if ($response->failed()) {
+                Log::error('Google Maps Directions API Error: ' . $response->body());
+                return null;
+            }
+
+            $data = $response->json();
+
+            if ($data['status'] !== 'OK' || empty($data['routes'])) {
+                Log::error('Google Maps Directions API Status Error: ' . ($data['status'] ?? 'Unknown'));
+                return null;
+            }
+
+            $route = $data['routes'][0];
+            $legs = $route['legs'] ?? [];
+            
+            // Extract polyline
+            $overviewPolyline = $route['overview_polyline']['points'] ?? null;
+            
+            // Calculate total distance and duration
+            $totalDistance = 0;
+            $totalDuration = 0;
+            foreach ($legs as $leg) {
+                $totalDistance += $leg['distance']['value'] ?? 0;
+                $totalDuration += $leg['duration']['value'] ?? 0;
+            }
+
+            return [
+                'polyline' => $overviewPolyline,
+                'distance' => $totalDistance / 1000, // Convert to km
+                'duration' => $totalDuration, // seconds
+                'duration_text' => $this->formatDuration($totalDuration),
+                'route_data' => $route, // Full route data for detailed segments
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Google Maps Directions Service Exception: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function formatDuration($seconds)
+    {
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        
+        if ($hours > 0) {
+            return "{$hours} hr {$minutes} min";
+        }
+        return "{$minutes} min";
+    }
+
     private function getFallbackDistance($startLat, $startLng, $endLat, $endLng)
     {
         // Haversine Formula

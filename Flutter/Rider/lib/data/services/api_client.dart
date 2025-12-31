@@ -1,6 +1,6 @@
 // ignore_for_file: library_prefixes
 
-// import 'dart:io';
+import 'dart:io';
 
 import 'package:dio/dio.dart' as dioX;
 import 'package:get/get.dart';
@@ -156,19 +156,20 @@ class ApiClient extends LocalStorageService {
       });
 
       // Add files with dynamic keys
-      /*
-      files.forEach((fieldKey, file) async {
-        formData.files.add(
-          MapEntry(
-            fieldKey, // Dynamic key for each file
-            await dioX.MultipartFile.fromFile(
-              file.path,
-              filename: file.path.split('/').last,
+      for (var entry in files.entries) {
+        if (entry.value is File) {
+          File file = entry.value as File;
+          formData.files.add(
+            MapEntry(
+              entry.key,
+              await dioX.MultipartFile.fromFile(
+                file.path,
+                filename: file.path.split(Platform.pathSeparator).last,
+              ),
             ),
-          ),
-        );
-      });
-      */
+          );
+        }
+      }
 
       dioX.Response response;
       switch (method) {

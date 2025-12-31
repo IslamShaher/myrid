@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:lottie/lottie.dart';
 import 'package:ovorideuser/core/helper/date_converter.dart';
 import 'package:ovorideuser/core/route/route.dart';
@@ -38,12 +39,35 @@ class RideMessageScreen extends StatefulWidget {
 class _RideMessageScreenState extends State<RideMessageScreen> {
   String riderName = "";
   String riderStatus = "";
+  Timer? _messagePollTimer;
+
   @override
   void initState() {
     super.initState();
-    widget.rideID = Get.arguments?[0] ?? -1;
-    riderName = Get.arguments?[1] ?? MyStrings.inbox.tr;
-    riderStatus = Get.arguments?[2] ?? "-1";
+    // Handle both string (direct rideId) and list ([rideId, name, status]) formats
+    if (Get.arguments != null) {
+      if (Get.arguments is String) {
+        widget.rideID = Get.arguments as String;
+        riderName = MyStrings.inbox.tr;
+        riderStatus = "-1";
+      } else if (Get.arguments is List && (Get.arguments as List).isNotEmpty) {
+        widget.rideID = Get.arguments[0]?.toString() ?? '-1';
+        riderName = (Get.arguments.length > 1 && Get.arguments[1] != null) 
+            ? Get.arguments[1].toString() 
+            : MyStrings.inbox.tr;
+        riderStatus = (Get.arguments.length > 2 && Get.arguments[2] != null) 
+            ? Get.arguments[2].toString() 
+            : "-1";
+      } else {
+        widget.rideID = '-1';
+        riderName = MyStrings.inbox.tr;
+        riderStatus = "-1";
+      }
+    } else {
+      widget.rideID = '-1';
+      riderName = MyStrings.inbox.tr;
+      riderStatus = "-1";
+    }
 
     Get.put(MessageRepo(apiClient: Get.find()));
     Get.put(RideRepo(apiClient: Get.find()));
@@ -56,11 +80,19 @@ class _RideMessageScreenState extends State<RideMessageScreen> {
     WidgetsBinding.instance.addPostFrameCallback((time) {
       controller.initialData(widget.rideID);
       controller.updateCount(0);
+      
+      // Start polling for new messages every 3 seconds
+      _messagePollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+        if (Get.currentRoute == RouteHelper.rideMessageScreen) {
+          controller.getRideMessage(widget.rideID, shouldLoading: false);
+        }
+      });
     });
   }
 
   @override
   void dispose() {
+    _messagePollTimer?.cancel();
     WidgetsBinding.instance.addPostFrameCallback((time) {
       Get.find<RideMessageController>().updateCount(0);
     });
@@ -246,10 +278,35 @@ class _RideMessageScreenState extends State<RideMessageScreen> {
                                 var item = controller.massageList[index];
 
                                 // Check if this message is from ME (user)
+                                // For shared rides: check if userId matches current user or if it's from the other user
                                 bool isMyMessage = item.userId == controller.userId && item.userId != "0";
+                                
+                                // For shared rides: if message.userId matches ride's user_id or second_user_id
+                                // and it's not the current user, it's from the other rider
+                                bool isFromOtherRider = false;
+                                if (controller.rideUserId != null && controller.secondUserId != null) {
+                                  // Shared ride: check if message is from other rider
+                                  String? msgUserId = item.userId;
+                                  if (msgUserId != null && msgUserId != "0" && msgUserId != controller.userId) {
+                                    if (msgUserId == controller.rideUserId || msgUserId == controller.secondUserId) {
+                                      isFromOtherRider = true;
+                                    }
+                                  }
+                                }
 
                                 // Check if PREVIOUS message was also from ME
                                 bool previousWasMine = previous?.userId == controller.userId && previous?.userId != "0";
+                                
+                                // Check if PREVIOUS message was from OTHER RIDER (shared rides)
+                                bool previousWasOtherRider = false;
+                                if (previous != null && controller.rideUserId != null && controller.secondUserId != null) {
+                                  String? prevUserId = previous.userId;
+                                  if (prevUserId != null && prevUserId != "0" && prevUserId != controller.userId) {
+                                    if (prevUserId == controller.rideUserId || prevUserId == controller.secondUserId) {
+                                      previousWasOtherRider = true;
+                                    }
+                                  }
+                                }
 
                                 // Check if PREVIOUS message was from DRIVER
                                 bool previousWasDriver = previous?.driverId != null && previous?.driverId != "0";
@@ -283,11 +340,13 @@ class _RideMessageScreenState extends State<RideMessageScreen> {
                                     );
                                   }
                                 } else {
-                                  // DRIVER MESSAGE - Receiver View
+                                  // OTHER USER MESSAGE (Driver or Other Rider) - Receiver View
                                   bool currentIsDriver = item.driverId != null && item.driverId != "0";
+                                  bool currentIsOtherRider = isFromOtherRider;
 
-                                  if (currentIsDriver && previousWasDriver && previous?.driverId == item.driverId) {
-                                    // Previous message was also from same driver - continuation bubble
+                                  if ((currentIsDriver && previousWasDriver && previous?.driverId == item.driverId) ||
+                                      (currentIsOtherRider && previousWasOtherRider && previous?.userId == item.userId)) {
+                                    // Previous message was also from same sender - continuation bubble
                                     return Padding(
                                       padding: const EdgeInsetsDirectional.only(
                                         start: Dimensions.space12,
@@ -303,7 +362,7 @@ class _RideMessageScreenState extends State<RideMessageScreen> {
                                           false),
                                     );
                                   } else {
-                                    // First message from driver in sequence - full bubble
+                                    // First message from this sender in sequence - full bubble
                                     return Padding(
                                       padding: const EdgeInsetsDirectional.only(
                                         start: Dimensions.space6,

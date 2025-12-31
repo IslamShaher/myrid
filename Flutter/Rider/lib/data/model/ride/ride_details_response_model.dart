@@ -39,6 +39,7 @@ class Data {
   String? serviceImagePath;
   String? brandImagePath;
   String? driverImagePath;
+  String? rideImagePath;
   String? driverTotalRide;
 
   Data({
@@ -46,17 +47,19 @@ class Data {
     this.serviceImagePath,
     this.brandImagePath,
     this.driverImagePath,
+    this.rideImagePath,
     this.driverTotalRide,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) {
-    printX("driver_total_ride ${json["driver_total_ride"].toString()}");
+    printX("driver_total_ride ${json["driver_total_ride"]?.toString() ?? ''}");
     return Data(
       ride: json["ride"] == null ? null : RideModel.fromJson(json["ride"]),
       serviceImagePath: json["service_image_path"],
       brandImagePath: json["brand_image_path"],
       driverImagePath: json["driver_image_path"],
-      driverTotalRide: json["driver_total_ride"].toString(),
+      rideImagePath: json["ride_image_path"],
+      driverTotalRide: json["driver_total_ride"]?.toString() ?? '',
     );
   }
 

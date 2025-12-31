@@ -14,6 +14,7 @@ import 'package:ovorideuser/data/model/global/app/ride_message_model.dart';
 import 'package:ovorideuser/data/model/global/response_model/response_model.dart';
 import 'package:ovorideuser/data/model/ride/ride_meassage_response_list.dart';
 import 'package:ovorideuser/data/repo/message/message_repo.dart';
+import 'package:ovorideuser/data/controller/ride/ride_details/ride_details_controller.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
 
 class RideMessageController extends GetxController {
@@ -30,6 +31,8 @@ class RideMessageController extends GetxController {
 
   String userId = '-1';
   String rideId = '-1';
+  String? secondUserId; // For shared rides
+  String? rideUserId; // Ride's user_id (rider 1)
 
   File? imageFile;
   ScrollController scrollController = ScrollController();
@@ -41,9 +44,29 @@ class RideMessageController extends GetxController {
     massageList = [];
     rideId = id;
     imageFile = null;
+    // Get ride details to know second_user_id for shared rides
+    await _loadRideInfo(id);
     update();
     printX(userId);
     await getRideMessage(id);
+  }
+
+  Future<void> _loadRideInfo(String rideId) async {
+    try {
+      // Try to get ride details from ride details controller if available
+      if (Get.isRegistered<RideDetailsController>()) {
+        final rideDetailsController = Get.find<RideDetailsController>();
+        if (rideDetailsController.ride.id == rideId) {
+          rideUserId = rideDetailsController.ride.userId;
+          secondUserId = rideDetailsController.ride.secondUser?.id;
+          return;
+        }
+      }
+      // If not available, fetch from API
+      // For now, we'll get it from messages API response if it includes ride info
+    } catch (e) {
+      printE("Error loading ride info: $e");
+    }
   }
 
   Future<void> getRideMessage(String id, {bool shouldLoading = true}) async {
@@ -56,6 +79,13 @@ class RideMessageController extends GetxController {
         if (model.status == "success") {
           imagePath = '${UrlContainer.domainUrl}/${model.data?.imagePath}';
           massageList = model.data?.messages ?? [];
+          
+          // Extract ride info for shared rides
+          if (model.data?.ride != null) {
+            rideUserId = model.data!.ride!['user_id']?.toString();
+            secondUserId = model.data!.ride!['second_user_id']?.toString();
+          }
+          
           update();
         } else {
           CustomSnackBar.error(errorList: model.message ?? [MyStrings.somethingWentWrong]);

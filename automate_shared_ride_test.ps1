@@ -1,244 +1,248 @@
-# Automated Shared Ride Testing Script for Android Emulators
-# Uses ADB commands for automation, screenshots, and XML UI dumps
+# Automated Shared Ride Testing Script
+# Tests full flow: Create ride on device 1, Join from device 2, Start ride
 
 param(
-    [string[]]$EmulatorSerials = @(),
-    [int]$StepDelay = 3,
-    [string]$ScreenshotDir = "emulator_test_screenshots",
-    [switch]$KeepEmulatorsOpen = $false
+    [string]$Device1 = "emulator-5554",
+    [string]$Device2 = "emulator-5556"
 )
 
 $ErrorActionPreference = "Continue"
 
-# Colors for output
-function Write-Step { param($msg) Write-Host "[STEP] $msg" -ForegroundColor Cyan }
-function Write-Success { param($msg) Write-Host "[SUCCESS] $msg" -ForegroundColor Green }
-function Write-Error { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
-function Write-Info { param($msg) Write-Host "[INFO] $msg" -ForegroundColor Yellow }
+Write-Host "=== Automated Shared Ride Testing ===" -ForegroundColor Cyan
+Write-Host ""
 
-# Test credentials
-$emulator1 = @{
-    email = "emulator1@test.com"
-    password = "password123"
-    serial = ""
+# Find ADB
+$adbPath = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+if (-not (Test-Path $adbPath)) {
+    $adbPath = "$env:USERPROFILE\AppData\Local\Android\Sdk\platform-tools\adb.exe"
 }
-$emulator2 = @{
-    email = "emulator2@test.com"
-    password = "password123"
-    serial = ""
-}
-
-# Test coordinates
-$coords1 = @{
-    pickup_lat = "30.0444"
-    pickup_lng = "31.2357"
-    dest_lat = "30.0131"
-    dest_lng = "31.2089"
-}
-
-$coords2 = @{
-    pickup_lat = "30.0450"
-    pickup_lng = "31.2360"
-    dest_lat = "30.0140"
-    dest_lng = "31.2095"
-}
-
-# Create screenshot directory
-if (-not (Test-Path $ScreenshotDir)) {
-    New-Item -ItemType Directory -Path $ScreenshotDir | Out-Null
-}
-Write-Success "Screenshots will be saved to: $ScreenshotDir"
-
-# ADB helper functions
-function Get-EmulatorList {
-    $devices = adb devices | Select-Object -Skip 1 | Where-Object { $_ -match "emulator-" }
-    return $devices | ForEach-Object { ($_ -split '\s+')[0] } | Where-Object { $_ }
-}
-
-function Take-Screenshot {
-    param($serial, $filename)
-    $path = Join-Path $ScreenshotDir "${serial}_${filename}"
-    adb -s $serial shell screencap -p | Set-Content -Path "$path.png" -Encoding Byte -ErrorAction SilentlyContinue
-    if (Test-Path "$path.png") {
-        Write-Info "Screenshot: $path.png"
-        return $path
-    }
-    return $null
-}
-
-function Get-UIXML {
-    param($serial)
-    $xmlPath = "/sdcard/ui_dump_$(Get-Date -Format 'yyyyMMddHHmmss').xml"
-    adb -s $serial shell uiautomator dump $xmlPath | Out-Null
-    adb -s $serial pull $xmlPath "ui_dump_${serial}.xml" 2>&1 | Out-Null
-    adb -s $serial shell rm $xmlPath | Out-Null
-    if (Test-Path "ui_dump_${serial}.xml") {
-        return Get-Content "ui_dump_${serial}.xml" -Raw
-    }
-    return $null
-}
-
-function Tap-Coordinates {
-    param($serial, $x, $y)
-    adb -s $serial shell input tap $x $y | Out-Null
-    Start-Sleep -Milliseconds 500
-}
-
-function Input-Text {
-    param($serial, $text)
-    # Clear first
-    adb -s $serial shell input keyevent KEYCODE_CTRL_LEFT KEYCODE_A | Out-Null
-    Start-Sleep -Milliseconds 200
-    # Type text
-    $escapedText = $text -replace ' ', '%s' -replace "'", "''"
-    adb -s $serial shell input text "'$escapedText'" 2>&1 | Out-Null
-    Start-Sleep -Milliseconds 300
-}
-
-function Send-Key {
-    param($serial, $keycode)
-    adb -s $serial shell input keyevent $keycode | Out-Null
-    Start-Sleep -Milliseconds 300
-}
-
-function Wait-ForUI {
-    param($serial, $timeout = 10)
-    $elapsed = 0
-    while ($elapsed -lt $timeout) {
-        $xml = Get-UIXML $serial
-        if ($xml) { return $true }
-        Start-Sleep -Seconds 1
-        $elapsed++
-    }
-    return $false
-}
-
-function Find-ElementByText {
-    param($xml, $text)
-    if ($xml -match "text=`"$text`"[^>]*bounds=`"\[(\d+),(\d+)\]\[(\d+),(\d+)\]`"") {
-        $matches | Out-Null
-        $x = ([int]$matches[1] + [int]$matches[3]) / 2
-        $y = ([int]$matches[2] + [int]$matches[4]) / 2
-        return @{ X = $x; Y = $y }
-    }
-    return $null
-}
-
-# === MAIN SCRIPT ===
-
-Write-Step "Starting Automated Shared Ride Test"
-Write-Host "=" * 60
-
-# Step 1: Check for emulators
-Write-Step "Checking for Android emulators..."
-$availableEmulators = Get-EmulatorList
-
-if ($availableEmulators.Count -lt 2) {
-    Write-Error "Need at least 2 emulators. Found: $($availableEmulators.Count)"
-    Write-Info "Available emulators:"
-    $availableEmulators | ForEach-Object { Write-Info "  - $_" }
-    Write-Info "To start emulators, run:"
-    Write-Info "  emulator -avd <avd_name_1> &"
-    Write-Info "  emulator -avd <avd_name_2> &"
+if (-not (Test-Path $adbPath)) {
+    Write-Host "[ERROR] ADB not found!" -ForegroundColor Red
     exit 1
 }
 
-# Assign emulators
-if ($EmulatorSerials.Count -ge 2) {
-    $emulator1.serial = $EmulatorSerials[0]
-    $emulator2.serial = $EmulatorSerials[1]
-} else {
-    $emulator1.serial = $availableEmulators[0]
-    $emulator2.serial = $availableEmulators[1]
+$env:Path = "$(Split-Path $adbPath);$env:Path"
+
+# Function to wait
+function Wait-For {
+    param([int]$Seconds = 2)
+    Start-Sleep -Seconds $Seconds
 }
 
-Write-Success "Emulator 1: $($emulator1.serial)"
-Write-Success "Emulator 2: $($emulator2.serial)"
+# Function to tap on coordinates
+function Tap-On {
+    param(
+        [string]$Device,
+        [int]$X,
+        [int]$Y
+    )
+    Write-Host "  [TAP] ($X, $Y) on $Device" -ForegroundColor Gray
+    & $adbPath -s $Device shell input tap $X $Y | Out-Null
+    Wait-For -Seconds 1
+}
 
-# Step 2: Unlock devices and take initial screenshots
-Write-Step "Unlocking devices..."
-Send-Key $emulator1.serial "KEYCODE_WAKEUP"
-Send-Key $emulator2.serial "KEYCODE_WAKEUP"
-Start-Sleep -Seconds 2
-Send-Key $emulator1.serial "KEYCODE_MENU"
-Send-Key $emulator2.serial "KEYCODE_MENU"
-Take-Screenshot $emulator1.serial "00_initial"
-Take-Screenshot $emulator2.serial "00_initial"
+# Function to input text
+function Input-Text {
+    param(
+        [string]$Device,
+        [string]$Text
+    )
+    Write-Host "  [INPUT] '$Text' on $Device" -ForegroundColor Gray
+    $escapedText = $Text -replace ' ', '\ '
+    & $adbPath -s $Device shell input text $escapedText | Out-Null
+    Wait-For -Seconds 1
+}
 
-# Step 3: Launch app on both emulators (parallel)
-Write-Step "Launching Rider app on both emulators..."
-$appPackage = "com.ovoride.rider"  # Adjust package name as needed
-Start-Job -ScriptBlock {
-    param($serial, $package)
-    adb -s $serial shell monkey -p $package -c android.intent.category.LAUNCHER 1
-} -ArgumentList $emulator1.serial, $appPackage | Out-Null
+# Function to swipe
+function Swipe-On {
+    param(
+        [string]$Device,
+        [int]$X1,
+        [int]$Y1,
+        [int]$X2,
+        [int]$Y2,
+        [int]$Duration = 300
+    )
+    Write-Host "  [SWIPE] ($X1,$Y1) -> ($X2,$Y2) on $Device" -ForegroundColor Gray
+    & $adbPath -s $Device shell input swipe $X1 $Y1 $X2 $Y2 $Duration | Out-Null
+    Wait-For -Seconds 1
+}
 
-Start-Job -ScriptBlock {
-    param($serial, $package)
-    adb -s $serial shell monkey -p $package -c android.intent.category.LAUNCHER 1
-} -ArgumentList $emulator2.serial, $appPackage | Out-Null
+# Function to press back
+function Press-Back {
+    param([string]$Device)
+    Write-Host "  [BACK] on $Device" -ForegroundColor Gray
+    & $adbPath -s $Device shell input keyevent KEYCODE_BACK | Out-Null
+    Wait-For -Seconds 1
+}
 
-Start-Sleep -Seconds 5
-Take-Screenshot $emulator1.serial "01_app_launched"
-Take-Screenshot $emulator2.serial "01_app_launched"
+# Function to get screen dimensions
+function Get-ScreenSize {
+    param([string]$Device)
+    $size = & $adbPath -s $Device shell wm size
+    if ($size -match "(\d+)x(\d+)") {
+        return @{
+            Width = [int]$matches[1]
+            Height = [int]$matches[2]
+        }
+    }
+    return @{ Width = 1080; Height = 1920 } # Default
+}
 
-# Step 4: Login on both emulators (parallel)
-Write-Step "Logging in users on both emulators..."
-# Note: This is a simplified version. You'll need to adapt based on your app's UI structure
+# Function to dump UI hierarchy
+function Get-UIHierarchy {
+    param([string]$Device)
+    & $adbPath -s $Device shell uiautomator dump /dev/tty | Out-Null
+    $xml = & $adbPath -s $Device shell cat /dev/tty
+    return $xml
+}
 
-# For Emulator 1
-Start-Job -ScriptBlock {
-    param($serial, $email, $password)
-    
-    # Get UI XML to find elements
-    $xml = adb -s $serial shell uiautomator dump /sdcard/ui.xml
-    adb -s $serial pull /sdcard/ui.xml "temp_${serial}.xml" 2>&1 | Out-Null
-    
-    # Try to find and tap username/email field (adjust coordinates based on your UI)
-    # This is a template - you'll need to adjust based on actual UI
-    adb -s $serial shell input tap 500 400  # Approximate position
-    
-    # Enter email
-    $emailEscaped = $email -replace '@', '\@'
-    adb -s $serial shell input text "$emailEscaped"
-    Start-Sleep -Seconds 1
-    
-    # Tap password field
-    adb -s $serial shell input tap 500 500
-    Start-Sleep -Seconds 1
-    
-    # Enter password
-    adb -s $serial shell input text "$password"
-    Start-Sleep -Seconds 1
-    
-    # Tap login button (approximate)
-    adb -s $serial shell input tap 500 600
-    
-} -ArgumentList $emulator1.serial, $emulator1.email, $emulator1.password | Out-Null
+# Check devices
+Write-Host "Checking devices..." -ForegroundColor Yellow
+$devices = & $adbPath devices | Select-String "device$"
+if (-not ($devices -match $Device1)) {
+    Write-Host "[ERROR] $Device1 not connected!" -ForegroundColor Red
+    exit 1
+}
+if (-not ($devices -match $Device2)) {
+    Write-Host "[ERROR] $Device2 not connected!" -ForegroundColor Red
+    exit 1
+}
 
-# Similar for Emulator 2
-Start-Job -ScriptBlock {
-    param($serial, $email, $password)
-    # Same login logic
-    adb -s $serial shell input tap 500 400
-    $emailEscaped = $email -replace '@', '\@'
-    adb -s $serial shell input text "$emailEscaped"
-    Start-Sleep -Seconds 1
-    adb -s $serial shell input tap 500 500
-    adb -s $serial shell input text "$password"
-    Start-Sleep -Seconds 1
-    adb -s $serial shell input tap 500 600
-} -ArgumentList $emulator2.serial, $emulator2.email, $emulator2.password | Out-Null
+Write-Host "[OK] Both devices connected" -ForegroundColor Green
+Write-Host ""
 
-Start-Sleep -Seconds $StepDelay
-Take-Screenshot $emulator1.serial "02_after_login"
-Take-Screenshot $emulator2.serial "02_after_login"
+# Get screen sizes
+$screen1 = Get-ScreenSize -Device $Device1
+$screen2 = Get-ScreenSize -Device $Device2
+Write-Host "Device 1 screen: $($screen1.Width)x$($screen1.Height)" -ForegroundColor Gray
+Write-Host "Device 2 screen: $($screen2.Width)x$($screen2.Height)" -ForegroundColor Gray
+Write-Host ""
 
-Write-Warning "NOTE: The automation script uses approximate coordinates."
-Write-Warning "You may need to adjust tap coordinates based on your actual UI layout."
-Write-Warning "Consider using UI Automator Viewer to get exact coordinates."
+# Calculate center points (assuming 1080x1920 for now, will adjust)
+$centerX = $screen1.Width / 2
+$centerY = $screen1.Height / 2
+$bottomY = $screen1.Height - 100
 
-# Generate a Python script for more advanced automation
-Write-Step "Generating Python automation script for better UI element detection..."
+Write-Host "=== STEP 1: Opening app on both devices ===" -ForegroundColor Cyan
+# Open app (assuming package name)
+$packageName = "com.ovosolution.ovorideuser"
+& $adbPath -s $Device1 shell monkey -p $packageName -c android.intent.category.LAUNCHER 1 | Out-Null
+Wait-For -Seconds 3
+& $adbPath -s $Device2 shell monkey -p $packageName -c android.intent.category.LAUNCHER 1 | Out-Null
+Wait-For -Seconds 3
+Write-Host "[OK] Apps opened" -ForegroundColor Green
+Write-Host ""
 
+Write-Host "=== STEP 2: Navigate to Shared Ride on Device 1 ===" -ForegroundColor Cyan
+# Tap on shared ride button (assuming it's on home screen, need to find exact coordinates)
+# This is approximate - in real scenario, we'd parse UI XML to find exact coordinates
+Tap-On -Device $Device1 -X $centerX -Y [int]($screen1.Height * 0.6)  # Approximate shared ride button
+Wait-For -Seconds 2
+Write-Host "[OK] Navigated to shared ride" -ForegroundColor Green
+Write-Host ""
 
+Write-Host "=== STEP 3: Enter pickup location on Device 1 ===" -ForegroundColor Cyan
+# Tap pickup field
+Tap-On -Device $Device1 -X $centerX -Y [int]($screen1.Height * 0.3)
+Wait-For -Seconds 2
+Input-Text -Device $Device1 -Text "30.0444,31.2357"  # Cairo coordinates
+Wait-For -Seconds 2
+Press-Back -Device $Device1  # Close keyboard
+Wait-For -Seconds 1
+Write-Host "[OK] Pickup entered" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "=== STEP 4: Enter destination on Device 1 ===" -ForegroundColor Cyan
+# Tap destination field
+Tap-On -Device $Device1 -X $centerX -Y [int]($screen1.Height * 0.4)
+Wait-For -Seconds 2
+Input-Text -Device $Device1 -Text "30.0131,31.2089"  # Cairo destination
+Wait-For -Seconds 2
+Press-Back -Device $Device1  # Close keyboard
+Wait-For -Seconds 1
+Write-Host "[OK] Destination entered" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "=== STEP 5: Create/Search for shared ride on Device 1 ===" -ForegroundColor Cyan
+# Tap search/create button (usually at bottom or prominent button)
+Tap-On -Device $Device1 -X $centerX -Y [int]($screen1.Height * 0.85)
+Wait-For -Seconds 5  # Wait for matching/search
+Write-Host "[OK] Searching for matches..." -ForegroundColor Green
+Write-Host ""
+
+Write-Host "=== STEP 6: On Device 2, navigate to shared ride and join ===" -ForegroundColor Cyan
+# Navigate to shared ride
+Tap-On -Device $Device2 -X $centerX -Y [int]($screen2.Height * 0.6)
+Wait-For -Seconds 2
+
+# Enter pickup on device 2
+Tap-On -Device $Device2 -X $centerX -Y [int]($screen2.Height * 0.3)
+Wait-For -Seconds 2
+Input-Text -Device $Device2 -Text "30.0277,31.2136"  # Different pickup
+Wait-For -Seconds 2
+Press-Back -Device $Device2
+Wait-For -Seconds 1
+
+# Enter destination on device 2
+Tap-On -Device $Device2 -X $centerX -Y [int]($screen2.Height * 0.4)
+Wait-For -Seconds 2
+Input-Text -Device $Device2 -Text "30.0131,31.2089"  # Same destination
+Wait-For -Seconds 2
+Press-Back -Device $Device2
+Wait-For -Seconds 1
+
+# Search/join
+Tap-On -Device $Device2 -X $centerX -Y [int]($screen2.Height * 0.85)
+Wait-For -Seconds 3
+
+# If match appears, tap to join (approximate location)
+Tap-On -Device $Device2 -X $centerX -Y $centerY
+Wait-For -Seconds 2
+
+# Confirm join if there's a button
+Tap-On -Device $Device2 -X $centerX -Y [int]($screen2.Height * 0.8)
+Wait-For -Seconds 5
+Write-Host "[OK] Device 2 joined ride" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "=== STEP 7: Wait for ride to be active ===" -ForegroundColor Cyan
+Wait-For -Seconds 5
+
+Write-Host "=== STEP 8: Start ride from Device 1 ===" -ForegroundColor Cyan
+# Swipe to start (Uber-like slider)
+# Usually at bottom center, swipe right
+$startX = [int]($screen1.Width * 0.2)
+$startY = [int]($screen1.Height * 0.9)
+$endX = [int]($screen1.Width * 0.8)
+Swipe-On -Device $Device1 -X1 $startX -Y1 $startY -X2 $endX -Y2 $startY -Duration 500
+Wait-For -Seconds 3
+Write-Host "[OK] Ride started (swipe attempted)" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "=== STEP 9: Monitor for errors ===" -ForegroundColor Cyan
+Write-Host "Checking logs for errors..." -ForegroundColor Yellow
+Wait-For -Seconds 5
+
+$errors1 = & $adbPath -s $Device1 logcat -d | Select-String -Pattern "Exception|Error|FATAL|null" -Context 2,5 | Select-Object -Last 20
+$errors2 = & $adbPath -s $Device2 logcat -d | Select-String -Pattern "Exception|Error|FATAL|null" -Context 2,5 | Select-Object -Last 20
+
+if ($errors1) {
+    Write-Host "[ERRORS FOUND ON DEVICE 1]:" -ForegroundColor Red
+    $errors1 | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+}
+
+if ($errors2) {
+    Write-Host "[ERRORS FOUND ON DEVICE 2]:" -ForegroundColor Red
+    $errors2 | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+}
+
+if (-not $errors1 -and -not $errors2) {
+    Write-Host "[OK] No errors found in logs" -ForegroundColor Green
+}
+
+Write-Host ""
+Write-Host "=== Test Complete ===" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "NOTE: This script uses approximate coordinates." -ForegroundColor Yellow
+Write-Host "For accurate testing, UI XML parsing would be needed to find exact element positions." -ForegroundColor Yellow

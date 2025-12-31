@@ -9,8 +9,15 @@ import 'package:ovorideuser/data/controller/shuttle/shared_ride_controller.dart'
 import 'package:ovorideuser/data/model/shuttle/shared_ride_match_model.dart';
 import 'package:ovorideuser/presentation/components/app-bar/custom_appbar.dart';
 import 'package:ovorideuser/presentation/components/buttons/enhanced_action_button.dart';
+import 'dart:async';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ovorideuser/data/controller/location/app_location_controller.dart';
+import 'package:ovorideuser/presentation/components/buttons/swipe_to_start_button.dart';
 import 'package:ovorideuser/presentation/components/divider/custom_spacer.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_map_widget.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_navigation_widget.dart';
+import 'package:ovorideuser/core/utils/util.dart';
 
 class SharedRideActiveScreen extends StatefulWidget {
   final String rideId;
@@ -23,11 +30,74 @@ class SharedRideActiveScreen extends StatefulWidget {
 class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
   RideInfo? rideData;
   bool isLoading = true;
+  String? rideStatus; // 'active' or 'running'
+  Timer? _locationUpdateTimer;
+  Timer? _dataRefreshTimer;
   
   @override
   void initState() {
     super.initState();
     _loadRideData();
+    // Start periodic data refresh
+    _dataRefreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _loadRideData();
+    });
+    // Start location tracking if ride is running
+    _startLocationTracking();
+    // Listen to Pusher events for live location updates
+    _setupPusherListener();
+  }
+  
+  void _setupPusherListener() {
+    // Listen to Pusher events for live location updates
+    // The PusherRideController handles LIVE_LOCATION events
+    // We'll update state when location updates are received via GetX
+    if (Get.isRegistered<PusherRideController>()) {
+      // Location updates will be handled through the controller
+      // We can add a listener here if needed
+    }
+  }
+  
+  void _updateOtherUserLocation(LatLng location) {
+    setState(() {
+      otherUserLocation = location;
+    });
+  }
+  
+  @override
+  void dispose() {
+    _locationUpdateTimer?.cancel();
+    _dataRefreshTimer?.cancel();
+    super.dispose();
+  }
+  
+  void _startLocationTracking() {
+    // Update location every 10 seconds when ride is active/running
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (rideStatus == 'active' || rideStatus == 'running') {
+        await _updateLiveLocation();
+      }
+    });
+  }
+  
+  Future<void> _updateLiveLocation() async {
+    try {
+      final controller = Get.find<SharedRideController>();
+      final appLocationController = Get.find<AppLocationController>();
+      final position = await appLocationController.getCurrentPosition();
+      if (position != null) {
+        final location = LatLng(position.latitude, position.longitude);
+        controller.updateCurrentUserLocation(location);
+        
+        // Send to backend
+        await controller.sharedRideRepo.updateLiveLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+      }
+    } catch (e) {
+      print('Error updating live location: $e');
+    }
   }
   
   Future<void> _loadRideData() async {
@@ -35,8 +105,10 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
       final controller = Get.find<SharedRideController>();
       final response = await controller.sharedRideRepo.getActiveSharedRide();
       if (response.statusCode == 200 && response.responseJson['data'] != null) {
+        final data = response.responseJson['data'];
         setState(() {
-          rideData = RideInfo.fromJson(response.responseJson['data']);
+          rideData = RideInfo.fromJson(data);
+          rideStatus = data['status']?.toString() ?? 'active';
           isLoading = false;
         });
       } else {
@@ -77,7 +149,11 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
             canUploadScreenshot = (firstPickup == 'S1' && isRider1) || (firstPickup == 'S2' && isRider2);
           }
           
-          String status = "active"; // Could get from rideData.status if needed
+          String status = rideStatus ?? "active";
+          
+          // Check if ride has started (status is running)
+          // Status values: '1' = active, '2' = running, 'running' = running
+          bool isRideRunning = status == 'running' || status == '2' || status == '2.0';
           
           return SingleChildScrollView(
             padding: EdgeInsets.all(Dimensions.space15),
@@ -99,95 +175,142 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                     ],
                   ),
                 ),
-                spaceDown(20),
                 
-                // Ride Guide Button (Rider 1) - Enhanced with icon
-                if(isRider1)
-                  EnhancedActionButton(
-                    text: "Ride Details (Route Guide)",
-                    icon: Icons.route_outlined,
-                    backgroundColor: MyColor.neutral100,
-                    textColor: MyColor.primaryTextColor,
-                    iconColor: MyColor.getPrimaryColor(),
-                    isOutlined: false,
-                    onPressed: () {
-                      // Open Route Guide Screen
-                      Get.dialog(
-                        AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          title: Row(
-                            children: [
-                              Icon(Icons.route, color: MyColor.getPrimaryColor()),
-                              const SizedBox(width: 12),
-                              const Text("Route Guide"),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Follow this pickup order:",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildRouteStep("1", "Pickup You", Icons.person),
-                              _buildRouteStep("2", "Pickup Rider 2", Icons.person_outline),
-                              _buildRouteStep("3", "Dropoff You", Icons.location_on),
-                              _buildRouteStep("4", "Dropoff Rider 2", Icons.location_on_outlined),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: MyColor.neutral100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  "Enter this order in Uber/Careem",
-                                  style: TextStyle(fontStyle: FontStyle.italic),
-                                ),
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Get.back(),
-                              child: const Text("Got it"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                if (isRideRunning && rideData != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: EnhancedActionButton(
+                      text: "Open Directions in Maps",
+                      icon: Icons.map_outlined,
+                      backgroundColor: MyColor.neutral700,
+                      isPrimary: false,
+                      onPressed: () {
+                        MyUtils.launchMap(rideData!.destLat!, rideData!.destLng!);
+                      },
+                    ),
                   ),
-                spaceDown(16),
                 
-                // Active Flow Buttons - Enhanced
-                if (isRider1 && status == 'active')
-                  EnhancedActionButton(
-                    text: "I Started Driving",
-                    icon: Icons.play_circle_outline,
-                    backgroundColor: MyColor.colorGreen,
-                    isPrimary: true,
-                    isLoading: controller.isLoading,
-                    onPressed: () async {
-                      controller.isLoading = true;
-                      controller.update();
-                      try {
-                        final response = await controller.sharedRideRepo.updateRideStatus(rideId: widget.rideId, action: 'start_driving');
-                        if (response.statusCode == 200) {
-                          CustomSnackBar.success(successList: [response.responseJson['message'] ?? 'Status updated']);
-                        } else {
-                          CustomSnackBar.error(errorList: [response.message]);
-                        }
-                      } catch (e) {
-                        CustomSnackBar.error(errorList: [MyStrings.somethingWentWrong.tr]);
-                      } finally {
-                        controller.isLoading = false;
+                const Divider(),
+                
+                // Instructions for Second User (Rider 2)
+                if(isRider2) ...[
+                  _buildSecondUserInstructionsCard(rideData, status),
+                  spaceDown(16),
+                ],
+                
+                // Instructions and Map for Rider 1
+                if(isRider1) ...[
+                  // Show instructions dialog on first load
+                  if (rideData != null && rideData!.secondUserId != null)
+                    _buildInstructionsCard(rideData!),
+                  spaceDown(16),
+                  
+                  // Map showing all 4 points with route and live locations
+                  if (rideData != null && 
+                      rideData!.pickupLat != null && 
+                      rideData!.pickupLng != null &&
+                      rideData!.destLat != null &&
+                      rideData!.destLng != null &&
+                      rideData!.secondPickupLat != null &&
+                      rideData!.secondPickupLng != null &&
+                      rideData!.secondDestLat != null &&
+                      rideData!.secondDestLng != null)
+                    Container(
+                      height: isRideRunning ? 400 : 300,
+                      margin: EdgeInsets.only(bottom: Dimensions.space15),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
+                        border: Border.all(color: MyColor.neutral300),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
+                        child: SharedRideMapWidget(
+                          startLat1: rideData!.pickupLat!,
+                          startLng1: rideData!.pickupLng!,
+                          endLat1: rideData!.destLat!,
+                          endLng1: rideData!.destLng!,
+                          startLat2: rideData!.secondPickupLat!,
+                          startLng2: rideData!.secondPickupLng!,
+                          endLat2: rideData!.secondDestLat!,
+                          endLng2: rideData!.secondDestLng!,
+                          sequence: rideData!.sharedRideSequence,
+                          directionsData: rideData!.directionsData,
+                          currentUserLocation: controller.currentUserLocation.value,
+                          otherUserLocation: controller.otherUserLocation.value,
+                          showLiveLocations: true,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 300,
+                      margin: EdgeInsets.only(bottom: Dimensions.space15),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
+                        border: Border.all(color: MyColor.neutral300),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Waiting for ride coordinates...",
+                          style: regularDefault,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  spaceDown(16),
+                  
+                  // Uber-style Swipe to Start Button
+                  if (status == 'active' || status == '1')
+                    SwipeToStartButton(
+                      text: "Swipe to Start Ride",
+                      isLoading: controller.isLoading,
+                      onStart: () async {
+                        controller.isLoading = true;
                         controller.update();
-                      }
-                    },
+                        try {
+                          final response = await controller.sharedRideRepo.updateRideStatus(
+                            rideId: widget.rideId, 
+                            action: 'start_driving'
+                          );
+                          if (response.statusCode == 200) {
+                            CustomSnackBar.success(
+                              successList: [response.responseJson['message'] ?? 'Ride started!']
+                            );
+                            setState(() {
+                              rideStatus = 'running';
+                            });
+                            _loadRideData(); // Reload to update status
+                            _startLocationTracking(); // Start location updates
+                          } else {
+                            CustomSnackBar.error(errorList: [response.message]);
+                          }
+                        } catch (e) {
+                          CustomSnackBar.error(errorList: [MyStrings.somethingWentWrong.tr]);
+                        } finally {
+                          controller.isLoading = false;
+                          controller.update();
+                        }
+                      },
+                    ),
+                  spaceDown(16),
+                ],
+                
+                // Navigation Mode for Rider 1 when ride is running
+                if (isRider1 && isRideRunning && rideData != null &&
+                    rideData!.directionsData != null &&
+                    rideData!.sharedRideSequence != null)
+                  SharedRideNavigationWidget(
+                    directionsData: rideData!.directionsData!,
+                    sequence: rideData!.sharedRideSequence!,
+                    currentLocation: controller.currentUserLocation.value,
+                    pickupLat1: rideData!.pickupLat!,
+                    pickupLng1: rideData!.pickupLng!,
+                    destLat1: rideData!.destLat!,
+                    destLng1: rideData!.destLng!,
+                    pickupLat2: rideData!.secondPickupLat!,
+                    pickupLng2: rideData!.secondPickupLng!,
+                    destLat2: rideData!.secondDestLat!,
+                    destLng2: rideData!.secondDestLng!,
                   ),
                 spaceDown(12),
                   
@@ -254,8 +377,13 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
                     backgroundColor: MyColor.neutral700,
                     isPrimary: false,
                     onPressed: () {
-                       // Image Picker logic
-                      CustomSnackBar.success(successList: ["Opening camera..."]);
+                      // Navigate to fare upload screen or show dialog
+                      Get.toNamed(
+                        RouteHelper.rideDetailsScreen,
+                        arguments: widget.rideId,
+                      )?.then((_) {
+                        _loadRideData(); // Reload after returning
+                      });
                     },
                   ),
 
@@ -310,35 +438,211 @@ class _SharedRideActiveScreenState extends State<SharedRideActiveScreen> {
     );
   }
 
-  Widget _buildRouteStep(String number, String text, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+  Widget _buildInstructionsCard(RideInfo rideData) {
+    return Container(
+      padding: EdgeInsets.all(Dimensions.space15),
+      margin: EdgeInsets.only(bottom: Dimensions.space15),
+      decoration: BoxDecoration(
+        color: MyColor.getPrimaryColor().withOpacity(0.1),
+        borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
+        border: Border.all(
+          color: MyColor.getPrimaryColor().withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: MyColor.getPrimaryColor().withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: boldDefault.copyWith(
-                  color: MyColor.getPrimaryColor(),
-                  fontSize: 14,
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: MyColor.getPrimaryColor(), size: 24),
+              spaceSide(Dimensions.space10),
+              Expanded(
+                child: Text(
+                  "You are the First Pickup",
+                  style: boldLarge.copyWith(color: MyColor.getPrimaryColor()),
                 ),
               ),
+            ],
+          ),
+          spaceDown(Dimensions.space10),
+          Text(
+            "As the first pickup user, you are responsible for:",
+            style: boldDefault.copyWith(fontSize: 14),
+          ),
+          spaceDown(Dimensions.space8),
+          _buildInstructionItem("1. Starting the ride by swiping the button above"),
+          _buildInstructionItem("2. Booking the ride in Uber/Careem with these 4 points:"),
+          spaceDown(Dimensions.space5),
+          if (rideData.sharedRideSequence != null && rideData.sharedRideSequence!.isNotEmpty) ...[
+            ...rideData.sharedRideSequence!.asMap().entries.map((entry) {
+              int index = entry.key;
+              String code = entry.value;
+              String pointName = code == 'S1' ? 'Your Pickup' :
+                                code == 'S2' ? 'Rider 2 Pickup' :
+                                code == 'E1' ? 'Your Dropoff' :
+                                'Rider 2 Dropoff';
+              return Padding(
+                padding: EdgeInsets.only(left: Dimensions.space20, bottom: Dimensions.space5),
+                child: Text(
+                  "${index + 1}. $pointName ($code)",
+                  style: regularDefault.copyWith(fontSize: 13),
+                ),
+              );
+            }),
+          ],
+          spaceDown(Dimensions.space8),
+          _buildInstructionItem("3. Chat or call the other rider if you need more details"),
+          _buildInstructionItem("4. Upload the fare screenshot after the ride"),
+          spaceDown(Dimensions.space10),
+          Container(
+            padding: EdgeInsets.all(Dimensions.space10),
+            decoration: BoxDecoration(
+              color: MyColor.neutral100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.map_outlined, size: 20, color: MyColor.getPrimaryColor()),
+                spaceSide(Dimensions.space8),
+                Expanded(
+                  child: Text(
+                    "The map below shows all 4 points. You can zoom in/out to see details.",
+                    style: regularSmall.copyWith(fontSize: 12),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          Icon(icon, size: 20, color: MyColor.neutral700),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: regularDefault.copyWith(fontSize: 15),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionItem(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: Dimensions.space5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("• ", style: boldDefault.copyWith(fontSize: 14)),
+          Expanded(
+            child: Text(
+              text,
+              style: regularDefault.copyWith(fontSize: 13),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondUserInstructionsCard(RideInfo? rideData, String status) {
+    String statusMessage = "Waiting for first user to start the ride";
+    Color statusColor = MyColor.neutral700;
+    IconData statusIcon = Icons.hourglass_empty;
+    
+    if (status == 'running' || status == '2') {
+      statusMessage = "Ride is in progress";
+      statusColor = MyColor.colorGreen;
+      statusIcon = Icons.directions_car;
+    } else if (status == 'active' || status == '1') {
+      statusMessage = "Waiting for first user to start the ride";
+      statusColor = MyColor.getPrimaryColor();
+      statusIcon = Icons.access_time;
+    }
+    
+    return Container(
+      padding: EdgeInsets.all(Dimensions.space15),
+      margin: EdgeInsets.only(bottom: Dimensions.space15),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(Dimensions.mediumRadius),
+        border: Border.all(
+          color: statusColor.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(statusIcon, color: statusColor, size: 24),
+              spaceSide(Dimensions.space10),
+              Expanded(
+                child: Text(
+                  "You are the Second Rider",
+                  style: boldLarge.copyWith(color: statusColor),
+                ),
+              ),
+            ],
+          ),
+          spaceDown(Dimensions.space10),
+          Container(
+            padding: EdgeInsets.all(Dimensions.space10),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 20, color: statusColor),
+                spaceSide(Dimensions.space8),
+                Expanded(
+                  child: Text(
+                    statusMessage,
+                    style: boldDefault.copyWith(color: statusColor, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          spaceDown(Dimensions.space10),
+          Text(
+            "As the second rider, you should:",
+            style: boldDefault.copyWith(fontSize: 14),
+          ),
+          spaceDown(Dimensions.space8),
+          _buildInstructionItem("1. Wait for the first rider to start the ride"),
+          _buildInstructionItem("2. Be ready at your pickup location when notified"),
+          _buildInstructionItem("3. Confirm your pickup when the first rider arrives"),
+          _buildInstructionItem("4. Chat or call the first rider if you need to coordinate"),
+          if (rideData?.sharedRideSequence != null && rideData!.sharedRideSequence!.isNotEmpty) ...[
+            spaceDown(Dimensions.space8),
+            Container(
+              padding: EdgeInsets.all(Dimensions.space10),
+              decoration: BoxDecoration(
+                color: MyColor.neutral100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Pickup Order:",
+                    style: boldDefault.copyWith(fontSize: 13),
+                  ),
+                  spaceDown(Dimensions.space5),
+                  ...rideData.sharedRideSequence!.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    String code = entry.value;
+                    String pointName = code == 'S1' ? 'Rider 1 Pickup' :
+                                      code == 'S2' ? 'Your Pickup' :
+                                      code == 'E1' ? 'Rider 1 Dropoff' :
+                                      'Your Dropoff';
+                    return Padding(
+                      padding: EdgeInsets.only(left: Dimensions.space10, bottom: Dimensions.space3),
+                      child: Text(
+                        "${index + 1}. $pointName",
+                        style: regularSmall.copyWith(fontSize: 12),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

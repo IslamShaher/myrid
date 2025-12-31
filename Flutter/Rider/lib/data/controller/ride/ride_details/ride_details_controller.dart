@@ -16,6 +16,7 @@ import 'package:ovorideuser/data/model/global/bid/bid_model.dart';
 import 'package:ovorideuser/data/model/global/response_model/response_model.dart';
 import 'package:ovorideuser/data/model/ride/ride_details_response_model.dart';
 import 'package:ovorideuser/data/repo/ride/ride_repo.dart';
+import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
 
 class RideDetailsController extends GetxController {
@@ -34,6 +35,7 @@ class RideDetailsController extends GetxController {
   String serviceImagePath = '';
   String brandImagePath = '';
   String driverImagePath = '';
+  String rideImagePath = '';
   String driverTotalCompletedRide = '';
   List<String> tipsList = [];
 
@@ -116,6 +118,7 @@ class RideDetailsController extends GetxController {
         serviceImagePath = '${UrlContainer.domainUrl}/${model.data?.serviceImagePath ?? ''}';
         brandImagePath = '${UrlContainer.domainUrl}/${model.data?.brandImagePath ?? ''}';
         driverImagePath = '${UrlContainer.domainUrl}/${model.data?.driverImagePath}';
+        rideImagePath = model.data?.rideImagePath ?? '';
         printD(
           'pickupLatLng>>> : ${pickupLatLng.latitude}, ${pickupLatLng.longitude} || ${ride.pickupLatitude}, ${ride.pickupLongitude}',
         );
@@ -361,6 +364,147 @@ class RideDetailsController extends GetxController {
 
   void updateRating(double rate) {
     rating = rate;
+    update();
+  }
+
+  // Shared Ride Methods
+  bool isEndingRide = false;
+  bool isMarkingArrived = false;
+  bool isRatingOtherUser = false;
+
+  // Determine if current user has first dropoff
+  bool hasFirstDropoff() {
+    if (ride.sharedRideSequence == null || ride.sharedRideSequence!.isEmpty) {
+      return false;
+    }
+    final sequence = ride.sharedRideSequence!;
+    final currentUserId = repo.apiClient.getUserID();
+    final isRider1 = ride.userId == currentUserId;
+    
+    // Find first dropoff (E1 or E2)
+    for (var code in sequence) {
+      if (code == 'E1' || code == 'E2') {
+        return (code == 'E1' && isRider1) || (code == 'E2' && !isRider1);
+      }
+    }
+    return false;
+  }
+
+  // Determine if current user has last dropoff
+  bool hasLastDropoff() {
+    if (ride.sharedRideSequence == null || ride.sharedRideSequence!.isEmpty) {
+      return false;
+    }
+    final sequence = ride.sharedRideSequence!;
+    final currentUserId = repo.apiClient.getUserID();
+    final isRider1 = ride.userId == currentUserId;
+    
+    // Find last dropoff (last E1 or E2 in sequence)
+    String? lastDropoff;
+    for (var code in sequence) {
+      if (code == 'E1' || code == 'E2') {
+        lastDropoff = code;
+      }
+    }
+    
+    if (lastDropoff == null) return false;
+    return (lastDropoff == 'E1' && isRider1) || (lastDropoff == 'E2' && !isRider1);
+  }
+
+  Future<void> endSharedRide() async {
+    if (isEndingRide) return;
+    
+    isEndingRide = true;
+    update();
+
+    try {
+      final sharedRideRepo = Get.find<SharedRideRepo>();
+      final responseModel = await sharedRideRepo.endSharedRide(rideId: ride.id!);
+
+      if (responseModel.statusCode == 200) {
+        final responseJson = responseModel.responseJson;
+        if (responseJson['success'] == true) {
+          CustomSnackBar.success(successList: [responseJson['message'] ?? 'Ride ended successfully']);
+          // Refresh ride details
+          await getRideDetails(ride.id!, shouldLoading: false);
+        } else {
+          CustomSnackBar.error(errorList: [responseJson['message'] ?? 'Failed to end ride']);
+        }
+      } else {
+        CustomSnackBar.error(errorList: [responseModel.message]);
+      }
+    } catch (e) {
+      printX('Error ending shared ride: $e');
+      CustomSnackBar.error(errorList: ['Failed to end ride']);
+    }
+
+    isEndingRide = false;
+    update();
+  }
+
+  Future<void> markArrived() async {
+    if (isMarkingArrived) return;
+    
+    isMarkingArrived = true;
+    update();
+
+    try {
+      final sharedRideRepo = Get.find<SharedRideRepo>();
+      final responseModel = await sharedRideRepo.markArrived(rideId: ride.id!);
+
+      if (responseModel.statusCode == 200) {
+        final responseJson = responseModel.responseJson;
+        if (responseJson['success'] == true) {
+          CustomSnackBar.success(successList: [responseJson['message'] ?? 'Arrival marked successfully']);
+          // Refresh ride details
+          await getRideDetails(ride.id!, shouldLoading: false);
+        } else {
+          CustomSnackBar.error(errorList: [responseJson['message'] ?? 'Failed to mark arrival']);
+        }
+      } else {
+        CustomSnackBar.error(errorList: [responseModel.message]);
+      }
+    } catch (e) {
+      printX('Error marking arrived: $e');
+      CustomSnackBar.error(errorList: ['Failed to mark arrival']);
+    }
+
+    isMarkingArrived = false;
+    update();
+  }
+
+  Future<void> rateOtherUserInSharedRide(int rating, String review) async {
+    if (isRatingOtherUser) return;
+    
+    isRatingOtherUser = true;
+    update();
+
+    try {
+      final sharedRideRepo = Get.find<SharedRideRepo>();
+      final responseModel = await sharedRideRepo.rateOtherUser(
+        rideId: ride.id!,
+        rating: rating,
+        review: review,
+      );
+
+      if (responseModel.statusCode == 200) {
+        final responseJson = responseModel.responseJson;
+        if (responseJson['success'] == true) {
+          CustomSnackBar.success(successList: [responseJson['message'] ?? 'Review submitted successfully']);
+          // Refresh ride details
+          await getRideDetails(ride.id!, shouldLoading: false);
+        } else {
+          CustomSnackBar.error(errorList: [responseJson['message'] ?? 'Failed to submit review']);
+        }
+      } else {
+        CustomSnackBar.error(errorList: [responseModel.message]);
+      }
+    } catch (e) {
+      printX('Error rating other user: $e');
+      CustomSnackBar.error(errorList: ['Failed to submit review']);
+    }
+
+    isRatingOtherUser = false;
     update();
   }
 }

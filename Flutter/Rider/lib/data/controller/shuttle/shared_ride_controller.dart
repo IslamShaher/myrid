@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ovorideuser/core/utils/my_strings.dart';
 import 'package:ovorideuser/data/model/global/response_model/response_model.dart';
 import 'package:ovorideuser/data/model/shuttle/shared_ride_match_model.dart';
 import 'package:ovorideuser/data/repo/shuttle/shared_ride_repo.dart';
 import 'package:ovorideuser/presentation/components/snack_bar/show_custom_snackbar.dart';
-import 'package:ovorideuser/presentation/screens/ride/ride_details_screen.dart';
+import 'package:ovorideuser/presentation/screens/ride/shared_ride_unified_screen.dart';
 
 class SharedRideController extends GetxController {
   SharedRideRepo sharedRideRepo;
@@ -21,6 +22,20 @@ class SharedRideController extends GetxController {
   bool isLoading = false;
   List<SharedMatch> matches = [];
   bool searched = false;
+  
+  // Shared Location State
+  Rx<LatLng?> currentUserLocation = Rx<LatLng?>(null);
+  Rx<LatLng?> otherUserLocation = Rx<LatLng?>(null);
+  
+  void updateCurrentUserLocation(LatLng location) {
+    currentUserLocation.value = location;
+    update();
+  }
+  
+  void updateOtherUserLocation(LatLng location) {
+    otherUserLocation.value = location;
+    update();
+  }
   
   // Pending/Active Ride Storage
   RideInfo? currentRide;
@@ -115,8 +130,10 @@ class SharedRideController extends GetxController {
     DateTime? scheduledTime,
   }) async {
     print("matchSharedRide called with: $startLat, $startLng to $endLat, $endLng");
+    // Clear previous matches when searching with new coordinates
+    matches = [];
+    searched = false;
     isLoading = true;
-    searched = true;
     update();
 
     try {
@@ -183,7 +200,13 @@ class SharedRideController extends GetxController {
       if (responseModel.statusCode == 200) {
          CustomSnackBar.success(successList: ["You joined the ride!"]);
          String rId = responseModel.responseJson['ride']['id'].toString();
-         Get.to(() => RideDetailsScreen(rideId: rId));
+         
+         // Refresh confirmed rides list and current ride after joining
+         await loadConfirmedRides();
+         await checkPendingRide(); // Refresh current ride
+         
+         // Navigate to unified screen showing active ride with map and chat
+         Get.off(() => SharedRideUnifiedScreen(rideId: rId));
       } else {
         CustomSnackBar.error(errorList: [responseModel.message]);
       }
@@ -232,8 +255,8 @@ class SharedRideController extends GetxController {
           // Return to home screen for scheduled rides
           Get.back();
         } else {
-          // Navigate to ride details for immediate rides
-          Get.to(() => RideDetailsScreen(rideId: rId));
+          // Navigate to unified screen for immediate shared rides to wait for a match
+          Get.to(() => SharedRideUnifiedScreen(rideId: rId));
         }
       } else {
         CustomSnackBar.error(errorList: [responseModel.message]);

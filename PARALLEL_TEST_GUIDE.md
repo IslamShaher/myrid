@@ -210,3 +210,5 @@ emulator -avd <name> &
 5. Check screenshots for UI state verification
 
 
+
+

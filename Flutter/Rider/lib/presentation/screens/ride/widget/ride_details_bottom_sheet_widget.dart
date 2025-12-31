@@ -35,6 +35,8 @@ import 'package:ovorideuser/presentation/screens/location/widgets/ride_sos_botto
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:ovorideuser/presentation/screens/payment/widget/ride_details_tips_bottom_sheet_body.dart';
 import 'package:ovorideuser/presentation/screens/ride/widget/searching_for_ride_aniamtion.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_fare_widget.dart';
+import 'package:ovorideuser/presentation/screens/ride/widgets/shared_ride_rate_user_widget.dart';
 
 class RideDetailsBottomSheetWidget extends StatelessWidget {
   final ScrollController scrollController;
@@ -314,10 +316,58 @@ class RideDetailsBottomSheetWidget extends StatelessWidget {
                       buildMessageOrCallWidget(ride),
                       spaceDown(Dimensions.space25),
                     ],
+                    // Shared ride fare widget (only for shared rides)
+                    if (ride.rideType == '4' && ride.secondUser != null) ...[
+                      SharedRideFareWidget(
+                        ride: ride,
+                        rideDetailsController: controller,
+                      ),
+                      spaceDown(Dimensions.space15),
+                    ],
                     buildRideCounterWidget(ride, currency),
                     spaceDown(Dimensions.space15),
                     buildRideLocationAndDestinationWidget(ride),
                     spaceDown(Dimensions.space15),
+                    // Shared ride actions (End Ride / Mark Arrived)
+                    if (ride.rideType == '4' && ride.secondUser != null) ...[
+                      if (controller.hasLastDropoff()) ...[
+                        RoundedButton(
+                          text: 'End Ride',
+                          bgColor: MyColor.primaryColor,
+                          isLoading: controller.isEndingRide,
+                          press: () async {
+                            await controller.endSharedRide();
+                            // After ending, show rating option
+                            if (controller.ride.status == AppStatus.RIDE_COMPLETED.toString()) {
+                              CustomBottomSheet(
+                                child: SharedRideRateUserWidget(
+                                  ride: controller.ride,
+                                  rideDetailsController: controller,
+                                ),
+                              ).customBottomSheet(context);
+                            }
+                          },
+                        ),
+                        spaceDown(Dimensions.space10),
+                      ] else if (controller.hasFirstDropoff()) ...[
+                        RoundedButton(
+                          text: 'I Arrived',
+                          bgColor: MyColor.primaryColor,
+                          isLoading: controller.isMarkingArrived,
+                          press: () async {
+                            await controller.markArrived();
+                            // After marking arrived, show rating option
+                            CustomBottomSheet(
+                              child: SharedRideRateUserWidget(
+                                ride: controller.ride,
+                                rideDetailsController: controller,
+                              ),
+                            ).customBottomSheet(context);
+                          },
+                        ),
+                        spaceDown(Dimensions.space10),
+                      ],
+                    ],
                     RoundedButton(
                       text: MyStrings.sos,
                       bgColor: MyColor.redCancelTextColor,
@@ -484,7 +534,29 @@ class RideDetailsBottomSheetWidget extends StatelessWidget {
                       ),
                     ],
                     spaceDown(Dimensions.space20),
-                    if (ride.driverReview == null) ...[
+                    // Shared ride: show rating option for other user
+                    if (ride.rideType == '4' && ride.secondUser != null) ...[
+                      // Check if user already rated the other user
+                      // For now, we'll show the rating button if ride is completed
+                      // TODO: Check if review exists for this user
+                      spaceDown(Dimensions.space25),
+                      RoundedButton(
+                        text: 'Rate Co-Rider',
+                        isOutlined: false,
+                        press: () {
+                          CustomBottomSheet(
+                            child: SharedRideRateUserWidget(
+                              ride: controller.ride,
+                              rideDetailsController: controller,
+                            ),
+                          ).customBottomSheet(context);
+                        },
+                        textColor: MyColor.colorWhite,
+                      ),
+                      spaceDown(Dimensions.space15),
+                    ],
+                    // Normal ride: show rating option for driver
+                    if (ride.driverReview == null && (ride.rideType != '4' || ride.secondUser == null)) ...[
                       spaceDown(Dimensions.space25),
                       RoundedButton(
                         text: MyStrings.review,
@@ -498,7 +570,7 @@ class RideDetailsBottomSheetWidget extends StatelessWidget {
                         },
                         textColor: MyColor.colorWhite,
                       ),
-                    ] else ...[
+                    ] else if (ride.rideType != '4' || ride.secondUser == null) ...[
                       spaceDown(Dimensions.space25),
                       Builder(builder: (context) {
                         bool isDownLoadLoading = false;

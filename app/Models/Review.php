@@ -8,10 +8,11 @@ class Review extends Model
 {
 
     protected $casts = [
-        'user_id'   => 'integer',
-        'driver_id' => 'integer',
-        'ride_id'   => 'integer',
-        'rating'    => 'integer',
+        'user_id'        => 'integer',
+        'driver_id'      => 'integer',
+        'ride_id'        => 'integer',
+        'rating'         => 'integer',
+        'reviewed_user_id' => 'integer',
     ];
 
     public function ride()

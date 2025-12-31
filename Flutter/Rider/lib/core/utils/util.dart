@@ -369,6 +369,15 @@ class MyUtils {
     await launchUrl(Uri.parse("tel:$url"));
   }
 
+  static Future<void> launchMap(double lat, double lng) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      CustomSnackBar.error(errorList: ['Could not launch map']);
+    }
+  }
+
   List<Row> makeSlotWidget({required List<Widget> widgets}) {
     List<Row> pairs = [];
     for (int i = 0; i < widgets.length; i += 2) {

@@ -44,7 +44,8 @@ class RideMessageListResponseModel {
 class Data {
   List<RideMessage>? messages;
   String? imagePath;
-  Data({this.messages, this.imagePath});
+  Map<String, dynamic>? ride; // Ride info for shared rides
+  Data({this.messages, this.imagePath, this.ride});
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
         messages: json["messages"] == null
@@ -53,11 +54,13 @@ class Data {
                 json["messages"]!.map((x) => RideMessage.fromJson(x)),
               ),
         imagePath: json["image_path"],
+        ride: json["ride"] != null ? Map<String, dynamic>.from(json["ride"]) : null,
       );
 
   Map<String, dynamic> toJson() => {
         "messages": messages?.map((x) => x.toJson()).toList(),
         "image_path": imagePath,
+        "ride": ride,
       };
 }
 

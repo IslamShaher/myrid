@@ -108,6 +108,9 @@ class FileInfo
         $data['vehicle'] = [
             'path'      => 'assets/images/vehicle',
         ];
+        $data['ride'] = [
+            'path'      => 'assets/images/ride',
+        ];
         return $data;
     }
 }
